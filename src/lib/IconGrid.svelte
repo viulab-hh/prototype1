@@ -1,45 +1,58 @@
 <script>
-	import { onMount } from 'svelte';
 	import Donut from '$lib/Donut.svelte';
+	import MonteDonut from '$lib/MonteDonut.svelte';
+	import prediction from '$lib/data/bundestag_prediction_2026_simulation.json';
 
-	let count = '50';
-	let items = [];
-	let values = [];
+	// sample-size used for computing standard errors
+	let sampleSize = '50';
 
-	$: items = Array.from({ length: +count }, (_, i) => i + 1);
-	$: values = Array.from({ length: +count }, () => Math.random());
+	// derive parties from the prediction file (use party_stats keys)
+	const partyStats = prediction.statistical && prediction.statistical.party_stats ? prediction.statistical.party_stats : {};
+	let parties = Object.keys(partyStats);
+	let samples = [];
 
-	// optional: generate a list of colors for variety
-	const colors = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
+	// palette
+	const colors = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#F97316', '#8B5CF6'];
 
 	function handleChange(e) {
-		count = +e.target.value;
+		sampleSize = e.target.value;
+	}
+
+	function normalRandom(){
+		// Box-Muller transform
+		let u = 0, v = 0;
+		while(u === 0) u = Math.random();
+		while(v === 0) v = Math.random();
+		return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+	}
+
+	// recompute samples when parties or sampleSize changes
+	$: {
+		const n = Math.max(1, +sampleSize);
+		samples = parties.map((p) => {
+			const stat = partyStats[p];
+			const mean = stat && stat.share ? stat.share : 0;
+			const pprop = mean / 100;
+			const sd_pct = Math.sqrt(pprop * (1 - pprop) / n) * 100; // percentage points
+			const draw = Math.max(0, Math.min(100, mean + sd_pct * normalRandom()));
+			return { party: p, mean, sd_pct, draw, donutValue: draw / 100 };
+		});
 	}
 </script>
 
 <div class="controls">
-	<label for="count-select">Icons:</label>
-	<select id="count-select" on:change={handleChange} bind:value={count}>
+	<label for="count-select">Sample size:</label>
+	<select id="count-select" on:change={handleChange} bind:value={sampleSize}>
 		<option value="50">50</option>
 		<option value="100">100</option>
 		<option value="200">200</option>
 		<option value="500">500</option>
 	</select>
-	<div class="summary">Showing {count} icons</div>
+	<div class="summary">Using sample size: {sampleSize}</div>
 </div>
 
-<div class="grid" role="list" aria-label="icons grid">
-	{#each items as i, idx (i)}
-		<div class="icon" role="listitem" title={`Icon ${i}`}>
-			<Donut
-				value={values[idx]}
-				size={28}
-				thickness={6}
-				color={colors[idx % colors.length]}
-				bgColor="#f3f4f6"
-			/>
-		</div>
-	{/each}
+<div>
+	<MonteDonut voteShares={prediction.vote_shares} sampleSize={sampleSize} sims={1000} />
 </div>
 
 <style>
@@ -58,20 +71,19 @@
 
 	.grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
-		gap: 8px;
+		grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+		gap: 12px;
+		align-items: center;
 	}
 	.icon {
-		width: 36px;
-		height: 36px;
 		display: flex;
+		gap: 8px;
 		align-items: center;
-		justify-content: center;
-		border-radius: 6px;
-		box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05) inset;
-		transition: transform 0.12s ease;
+		padding: 8px;
+		border-radius: 8px;
+		background: #fff;
+		box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 	}
-	.icon:active {
-		transform: scale(0.96);
-	}
+	.label .party { font-weight: 600; font-size: 0.9rem }
+	.label .meta { font-size: 0.8rem; color: #6b7280 }
 </style>
