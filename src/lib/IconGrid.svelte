@@ -1,9 +1,13 @@
 <script>
 	import { onMount } from 'svelte';
+	import Donut from '$lib/Donut.svelte';
+
 	let count = 50;
 	let items = [];
+	let values = [];
 
 	$: items = Array.from({ length: count }, (_, i) => i + 1);
+	$: values = Array.from({ length: count }, () => Math.random());
 
 	// optional: generate a list of colors for variety
 	const colors = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
@@ -25,19 +29,15 @@
 </div>
 
 <div class="grid" role="list" aria-label="icons grid">
-	{#each items as i (i)}
-		<div
-			class="icon"
-			role="listitem"
-			title={`Icon ${i}`}
-			style={`background: ${colors[i % colors.length]}`}
-		>
-			<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
-				<path
-					fill="white"
-					d="M12 2l2.9 6.3L21 9.2l-5 3.8L17 21l-5-3.3L7 21l1-8.1L3 9.2l6.1-.9L12 2z"
-				/>
-			</svg>
+	{#each items as i, idx (i)}
+		<div class="icon" role="listitem" title={`Icon ${i}`}>
+			<Donut
+				value={values[idx]}
+				size={28}
+				thickness={6}
+				color={colors[idx % colors.length]}
+				bgColor="#f3f4f6"
+			/>
 		</div>
 	{/each}
 </div>

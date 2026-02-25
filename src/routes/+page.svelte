@@ -7,5 +7,3 @@
 <p>Select how many icons to display and view them below.</p>
 
 <IconGrid />
-
-<D3Chart count={50} />
