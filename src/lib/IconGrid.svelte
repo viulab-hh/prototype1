@@ -7,22 +7,35 @@
 	let sampleSize = '50';
 
 	// derive parties from the prediction file (use party_stats keys)
-	const partyStats = prediction.statistical && prediction.statistical.party_stats ? prediction.statistical.party_stats : {};
+	const partyStats =
+		prediction.statistical && prediction.statistical.party_stats
+			? prediction.statistical.party_stats
+			: {};
 	let parties = Object.keys(partyStats);
 	let samples = [];
 
 	// palette
-	const colors = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#F97316', '#8B5CF6'];
+	const colors = [
+		'#2563EB',
+		'#10B981',
+		'#F59E0B',
+		'#EF4444',
+		'#8B5CF6',
+		'#06B6D4',
+		'#F97316',
+		'#8B5CF6'
+	];
 
 	function handleChange(e) {
 		sampleSize = e.target.value;
 	}
 
-	function normalRandom(){
+	function normalRandom() {
 		// Box-Muller transform
-		let u = 0, v = 0;
-		while(u === 0) u = Math.random();
-		while(v === 0) v = Math.random();
+		let u = 0,
+			v = 0;
+		while (u === 0) u = Math.random();
+		while (v === 0) v = Math.random();
 		return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
 	}
 
@@ -33,7 +46,7 @@
 			const stat = partyStats[p];
 			const mean = stat && stat.share ? stat.share : 0;
 			const pprop = mean / 100;
-			const sd_pct = Math.sqrt(pprop * (1 - pprop) / n) * 100; // percentage points
+			const sd_pct = Math.sqrt((pprop * (1 - pprop)) / n) * 100; // percentage points
 			const draw = Math.max(0, Math.min(100, mean + sd_pct * normalRandom()));
 			return { party: p, mean, sd_pct, draw, donutValue: draw / 100 };
 		});
@@ -52,7 +65,7 @@
 </div>
 
 <div>
-	<MonteDonut voteShares={prediction.vote_shares} sampleSize={sampleSize} sims={1000} />
+	<MonteDonut voteShares={prediction.vote_shares} {sampleSize} sims={1000} />
 </div>
 
 <style>
@@ -82,8 +95,14 @@
 		padding: 8px;
 		border-radius: 8px;
 		background: #fff;
-		box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 	}
-	.label .party { font-weight: 600; font-size: 0.9rem }
-	.label .meta { font-size: 0.8rem; color: #6b7280 }
+	.label .party {
+		font-weight: 600;
+		font-size: 0.9rem;
+	}
+	.label .meta {
+		font-size: 0.8rem;
+		color: #6b7280;
+	}
 </style>
