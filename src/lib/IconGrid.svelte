@@ -2,12 +2,12 @@
 	import { onMount } from 'svelte';
 	import Donut from '$lib/Donut.svelte';
 
-	let count = 50;
+	let count = '50';
 	let items = [];
 	let values = [];
 
-	$: items = Array.from({ length: count }, (_, i) => i + 1);
-	$: values = Array.from({ length: count }, () => Math.random());
+	$: items = Array.from({ length: +count }, (_, i) => i + 1);
+	$: values = Array.from({ length: +count }, () => Math.random());
 
 	// optional: generate a list of colors for variety
 	const colors = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];

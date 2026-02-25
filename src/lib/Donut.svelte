@@ -14,8 +14,14 @@
 	$: valuePath = arc({ startAngle: 0, endAngle: Math.max(0, Math.min(1, value)) * 2 * Math.PI });
 </script>
 
-<svg width={size} height={size} viewBox="0 0 {size} {size}" aria-hidden="true" focusable="false">
-	<g transform="translate({radius},{radius})">
+<svg
+	width={size}
+	height={size}
+	viewBox={`0 0 ${size} ${size}`}
+	aria-hidden="true"
+	focusable="false"
+>
+	<g transform={`translate(${radius},${radius})`}>
 		<path d={fullPath} fill={bgColor} />
 		<path d={valuePath} fill={color} />
 	</g>
