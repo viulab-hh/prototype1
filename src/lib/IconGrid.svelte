@@ -15,6 +15,9 @@
 	const minDonutSize = 10;
 	const viewportPadding = 32;
 	const verticalReserve = 170;
+	const waffleGap = 4;
+	const splitGap = 16;
+	const splitHeaderHeight = 26;
 
 	let viewportWidth = 1200;
 	let viewportHeight = 800;
@@ -22,8 +25,17 @@
 	let donutInner = 18;
 
 	let draws = [];
+	let drawEntries = [];
 	let laidOutDraws = [];
+	let linkeAtLeastFiveDraws = [];
+	let linkeBelowFiveDraws = [];
+	let availableFieldSize = 220;
 	let fieldSize = donutSize + 10;
+	let vizHeight = fieldSize;
+	let splitCols = 1;
+	let leftStackHeight = 0;
+	let rightStackHeight = 0;
+	let splitByLinke = false;
 	let tooltipParts = null;
 	let tooltipDrawNumber = null;
 	let tooltipX = 0;
@@ -31,6 +43,10 @@
 
 	function handleChange(e) {
 		donutCount = e.target.value;
+	}
+
+	function toggleSplitByLinke() {
+		splitByLinke = !splitByLinke;
 	}
 
 	function simulateOnce(n, probs) {
@@ -83,10 +99,32 @@
 		tooltipDrawNumber = null;
 	}
 
+	function getLinkeShare(parts) {
+		return parts.find((part) => part.party === 'Die Linke')?.value || 0;
+	}
+
+	function getWafflePosition(index, columns) {
+		const column = index % columns;
+		const row = Math.floor(index / columns);
+		return {
+			x: column * (donutSize + waffleGap),
+			y: splitHeaderHeight + row * (donutSize + waffleGap)
+		};
+	}
+
 	$: {
 		const count = Math.max(1, +donutCount);
 		draws = Array.from({ length: count }, () => buildDraw());
-		const availableFieldSize = Math.max(
+		drawEntries = draws.map((parts, index) => ({
+			parts,
+			drawNumber: index + 1,
+			linkeShare: getLinkeShare(parts)
+		}));
+
+		linkeAtLeastFiveDraws = drawEntries.filter((draw) => draw.linkeShare >= 0.05);
+		linkeBelowFiveDraws = drawEntries.filter((draw) => draw.linkeShare < 0.05);
+
+		availableFieldSize = Math.max(
 			220,
 			Math.min(viewportWidth - viewportPadding, viewportHeight - verticalReserve)
 		);
@@ -104,12 +142,50 @@
 		donutInner = Math.max(4, Math.round(donutSize * 0.29));
 		fieldSize = layout.fieldSize;
 
-		laidOutDraws = draws.map((parts, index) => {
-			const pos = layout.items[index];
+		const phyllotaxisOffsetX = Math.max(0, (availableFieldSize - fieldSize) / 2);
+		const phyllotaxisPositions = new Map(
+			layout.items.map((pos, index) => [
+				drawEntries[index].drawNumber,
+				{
+					left: pos.left + phyllotaxisOffsetX,
+					top: pos.top
+				}
+			])
+		);
+
+		const stackWidth = Math.max(80, Math.floor((availableFieldSize - splitGap) / 2));
+		splitCols = Math.max(1, Math.floor((stackWidth + waffleGap) / (donutSize + waffleGap)));
+
+		const splitPositions = new Map();
+		linkeAtLeastFiveDraws.forEach((draw, index) => {
+			const pos = getWafflePosition(index, splitCols);
+			splitPositions.set(draw.drawNumber, { left: pos.x, top: pos.y });
+		});
+		linkeBelowFiveDraws.forEach((draw, index) => {
+			const pos = getWafflePosition(index, splitCols);
+			splitPositions.set(draw.drawNumber, {
+				left: stackWidth + splitGap + pos.x,
+				top: pos.y
+			});
+		});
+
+		const leftRows = Math.ceil(linkeAtLeastFiveDraws.length / splitCols);
+		const rightRows = Math.ceil(linkeBelowFiveDraws.length / splitCols);
+		leftStackHeight = splitHeaderHeight + leftRows * (donutSize + waffleGap) - waffleGap;
+		rightStackHeight = splitHeaderHeight + rightRows * (donutSize + waffleGap) - waffleGap;
+		vizHeight = splitByLinke
+			? Math.max(splitHeaderHeight, leftStackHeight, rightStackHeight)
+			: fieldSize;
+
+		laidOutDraws = drawEntries.map((draw) => {
+			const activePos = splitByLinke
+				? splitPositions.get(draw.drawNumber)
+				: phyllotaxisPositions.get(draw.drawNumber);
 			return {
-				parts,
-				left: pos.left,
-				top: pos.top
+				parts: draw.parts,
+				drawNumber: draw.drawNumber,
+				left: activePos?.left ?? 0,
+				top: activePos?.top ?? 0
 			};
 		});
 	}
@@ -126,26 +202,38 @@
 			<option value="200">200</option>
 			<option value="500">500</option>
 		</select>
+		<button
+			type="button"
+			class="split-btn"
+			class:active={splitByLinke}
+			on:click={toggleSplitByLinke}
+		>
+			Linke über 5%
+		</button>
 	</div>
 
-	<div class="phyllotaxis-wrap">
-		<div class="phyllotaxis" style={`width: ${fieldSize}px; height: ${fieldSize}px;`}>
-			{#each laidOutDraws as draw, index}
-				<div
-					class="icon"
-					style={`transform: translate(${draw.left}px, ${draw.top}px);`}
-					role="button"
-					tabindex="0"
-					on:mouseenter={(event) => showTooltip(draw.parts, index + 1, event)}
-					on:mousemove={moveTooltip}
-					on:mouseleave={hideTooltip}
-					on:focus={(event) => showTooltipFromElement(draw.parts, index + 1, event.currentTarget)}
-					on:blur={hideTooltip}
-				>
-					<DrawDonut parts={draw.parts} size={donutSize} inner={donutInner} />
-				</div>
-			{/each}
-		</div>
+	<div class="viz-wrap" style={`width:${availableFieldSize}px; height:${vizHeight}px;`}>
+		{#if splitByLinke}
+			<div class="stack-title left">Die Linke ≥ 5% ({linkeAtLeastFiveDraws.length})</div>
+			<div class="stack-title right">Die Linke &lt; 5% ({linkeBelowFiveDraws.length})</div>
+		{/if}
+
+		{#each laidOutDraws as draw (draw.drawNumber)}
+			<div
+				class="icon"
+				style={`transform: translate(${draw.left}px, ${draw.top}px);`}
+				role="button"
+				tabindex="0"
+				on:mouseenter={(event) => showTooltip(draw.parts, draw.drawNumber, event)}
+				on:mousemove={moveTooltip}
+				on:mouseleave={hideTooltip}
+				on:focus={(event) =>
+					showTooltipFromElement(draw.parts, draw.drawNumber, event.currentTarget)}
+				on:blur={hideTooltip}
+			>
+				<DrawDonut parts={draw.parts} size={donutSize} inner={donutInner} />
+			</div>
+		{/each}
 	</div>
 </div>
 
@@ -164,22 +252,53 @@
 	select {
 		padding: 6px 8px;
 	}
-	.summary {
-		color: #6b7280;
+	.split-btn {
+		padding: 6px 10px;
+		border: 1px solid #d1d5db;
+		border-radius: 6px;
+		background: #fff;
+		cursor: pointer;
+		transition:
+			background-color 180ms ease,
+			border-color 180ms ease,
+			transform 180ms ease,
+			box-shadow 180ms ease;
 	}
-
-	.phyllotaxis-wrap {
-		width: 100%;
-		overflow: hidden;
-		padding: 2px 0 6px;
+	.split-btn:hover {
+		background: #f9fafb;
+		box-shadow: 0 1px 4px rgba(17, 24, 39, 0.1);
 	}
-	.phyllotaxis {
+	.split-btn.active {
+		background: #e5e7eb;
+		border-color: #9ca3af;
+		font-weight: 600;
+		transform: translateY(-1px);
+	}
+	.viz-wrap {
 		position: relative;
+		overflow: hidden;
 		margin: 0 auto;
+		transition: height 650ms cubic-bezier(0.2, 0.75, 0.2, 1);
+	}
+	.stack-title {
+		position: absolute;
+		top: 0;
+		width: calc((100% - 16px) / 2);
+		font-size: 0.9rem;
+		font-weight: 600;
+		line-height: 1.2;
+		pointer-events: none;
+	}
+	.stack-title.left {
+		left: 0;
+	}
+	.stack-title.right {
+		left: calc(((100% - 16px) / 2) + 16px);
 	}
 	.icon {
 		position: absolute;
 		left: 0;
 		top: 0;
+		transition: transform 650ms cubic-bezier(0.2, 0.75, 0.2, 1);
 	}
 </style>
