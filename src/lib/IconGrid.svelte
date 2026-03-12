@@ -10,8 +10,15 @@
 	const totalShare = baseShares.reduce((sum, value) => sum + value, 0) || 100;
 	const probabilities = baseShares.map((value) => value / totalShare);
 	const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-	const donutSize = 62;
-	const donutInner = 18;
+	const maxDonutSize = 62;
+	const minDonutSize = 10;
+	const viewportPadding = 32;
+	const verticalReserve = 170;
+
+	let viewportWidth = 1200;
+	let viewportHeight = 800;
+	let donutSize = maxDonutSize;
+	let donutInner = 18;
 
 	let draws = [];
 	let laidOutDraws = [];
@@ -58,6 +65,10 @@
 	$: {
 		const count = Math.max(1, +donutCount);
 		draws = Array.from({ length: count }, () => buildDraw());
+		const availableFieldSize = Math.max(
+			220,
+			Math.min(viewportWidth - viewportPadding, viewportHeight - verticalReserve)
+		);
 
 		const unitPositions = Array.from({ length: count }, (_, index) =>
 			getSunflowerPosition(index, 1)
@@ -71,6 +82,18 @@
 				if (d < minUnitDistance) minUnitDistance = d;
 			}
 		}
+		const maxUnitRadius = unitPositions.reduce(
+			(max, pos) => Math.max(max, Math.hypot(pos.x, pos.y)),
+			0
+		);
+
+		const k =
+			minUnitDistance > 0 && Number.isFinite(minUnitDistance)
+				? (2 * maxUnitRadius) / minUnitDistance
+				: 1;
+		const fittedSize = Math.floor((availableFieldSize - (k + 4)) / (k + 1));
+		donutSize = Math.max(minDonutSize, Math.min(maxDonutSize, fittedSize));
+		donutInner = Math.max(4, Math.round(donutSize * 0.29));
 
 		const targetMinCenterDistance = donutSize + 1;
 		const spacing =
@@ -85,7 +108,7 @@
 			positions.reduce((max, pos) => Math.max(max, Math.hypot(pos.x, pos.y)), 0) +
 			donutSize / 2 +
 			4;
-		fieldSize = Math.max(donutSize + 10, Math.ceil(maxRadius * 2));
+		fieldSize = Math.min(availableFieldSize, Math.max(donutSize + 10, Math.ceil(maxRadius * 2)));
 
 		laidOutDraws = draws.map((parts, index) => {
 			const pos = positions[index];
@@ -97,6 +120,8 @@
 		});
 	}
 </script>
+
+<svelte:window bind:innerWidth={viewportWidth} bind:innerHeight={viewportHeight} />
 
 <div class="controls">
 	<label for="count-select">Number of donuts:</label>
@@ -135,7 +160,7 @@
 
 	.sunflower-wrap {
 		width: 100%;
-		overflow: auto;
+		overflow: hidden;
 		padding: 2px 0 6px;
 	}
 	.sunflower {
