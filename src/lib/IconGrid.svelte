@@ -90,9 +90,6 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		padding: 10px 8px;
-		border: 1px solid #e5e7eb;
-		border-radius: 10px;
-		background: #fff;
+		padding: 4px;
 	}
 </style>

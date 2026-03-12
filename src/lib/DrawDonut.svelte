@@ -4,16 +4,16 @@
 	export let size = 120;
 	export let inner = 36;
 
-	const palette = [
-		'#2563EB',
-		'#10B981',
-		'#F59E0B',
-		'#EF4444',
-		'#8B5CF6',
-		'#06B6D4',
-		'#F97316',
-		'#8B5CF6'
-	];
+	const partyColors = {
+		'CDU/CSU': '#111111',
+		SPD: '#E3000F',
+		Greens: '#64A12D',
+		AfD: '#009EE0',
+		FDP: '#FFED00',
+		BSW: '#6E2C91',
+		'Die Linke': '#BE3075',
+		Others: '#9CA3AF'
+	};
 
 	function escapeHtml(str) {
 		return String(str)
@@ -23,9 +23,14 @@
 			.replace(/"/g, '&quot;');
 	}
 
+	function getPartyColor(party) {
+		return partyColors[party] || '#9CA3AF';
+	}
+
 	$: svgHtml = (() => {
 		if (!parts || parts.length === 0) return '';
 		const data = parts.map((p) => p.value);
+		const colors = parts.map((p) => getPartyColor(p.party));
 		const pie = d3.pie().sort(null);
 		const arcs = pie(data);
 		const arcGen = d3
@@ -35,7 +40,7 @@
 		return arcs
 			.map(
 				(a, i) =>
-					`<path d="${arcGen(a)}" fill="${escapeHtml(palette[i % palette.length])}" stroke="#fff" stroke-width="1"></path>`
+					`<path d="${arcGen(a)}" fill="${escapeHtml(colors[i])}" stroke="#fff" stroke-width="1"></path>`
 			)
 			.join('');
 	})();
