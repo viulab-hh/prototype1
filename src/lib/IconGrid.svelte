@@ -29,13 +29,19 @@
 	let laidOutDraws = [];
 	let linkeAtLeastFiveDraws = [];
 	let linkeBelowFiveDraws = [];
+	let rotGruenLinkeAtLeastFortyDraws = [];
+	let rotGruenLinkeBelowFortyDraws = [];
+	let activeLeftDraws = [];
+	let activeRightDraws = [];
+	let leftTitle = '';
+	let rightTitle = '';
 	let availableFieldSize = 220;
 	let fieldSize = donutSize + 10;
 	let vizHeight = fieldSize;
 	let splitCols = 1;
 	let leftStackHeight = 0;
 	let rightStackHeight = 0;
-	let splitByLinke = false;
+	let splitMode = 'none';
 	let tooltipParts = null;
 	let tooltipDrawNumber = null;
 	let tooltipX = 0;
@@ -45,8 +51,8 @@
 		donutCount = e.target.value;
 	}
 
-	function toggleSplitByLinke() {
-		splitByLinke = !splitByLinke;
+	function toggleSplitMode(mode) {
+		splitMode = splitMode === mode ? 'none' : mode;
 	}
 
 	function simulateOnce(n, probs) {
@@ -103,6 +109,13 @@
 		return parts.find((part) => part.party === 'Die Linke')?.value || 0;
 	}
 
+	function getRotGruenLinkeShare(parts) {
+		const spd = parts.find((part) => part.party === 'SPD')?.value || 0;
+		const gruene = parts.find((part) => part.party === 'Greens')?.value || 0;
+		const linke = parts.find((part) => part.party === 'Die Linke')?.value || 0;
+		return spd + gruene + linke;
+	}
+
 	function getWafflePosition(index, columns) {
 		const column = index % columns;
 		const row = Math.floor(index / columns);
@@ -118,11 +131,31 @@
 		drawEntries = draws.map((parts, index) => ({
 			parts,
 			drawNumber: index + 1,
-			linkeShare: getLinkeShare(parts)
+			linkeShare: getLinkeShare(parts),
+			rotGruenLinkeShare: getRotGruenLinkeShare(parts)
 		}));
 
 		linkeAtLeastFiveDraws = drawEntries.filter((draw) => draw.linkeShare >= 0.05);
 		linkeBelowFiveDraws = drawEntries.filter((draw) => draw.linkeShare < 0.05);
+		rotGruenLinkeAtLeastFortyDraws = drawEntries.filter((draw) => draw.rotGruenLinkeShare >= 0.4);
+		rotGruenLinkeBelowFortyDraws = drawEntries.filter((draw) => draw.rotGruenLinkeShare < 0.4);
+
+		if (splitMode === 'linke5') {
+			activeLeftDraws = linkeAtLeastFiveDraws;
+			activeRightDraws = linkeBelowFiveDraws;
+			leftTitle = `Die Linke ≥ 5% (${activeLeftDraws.length})`;
+			rightTitle = `Die Linke < 5% (${activeRightDraws.length})`;
+		} else if (splitMode === 'spdgruenelinke40') {
+			activeLeftDraws = rotGruenLinkeAtLeastFortyDraws;
+			activeRightDraws = rotGruenLinkeBelowFortyDraws;
+			leftTitle = `SPD + Grüne + Die Linke ≥ 40% (${activeLeftDraws.length})`;
+			rightTitle = `SPD + Grüne + Die Linke < 40% (${activeRightDraws.length})`;
+		} else {
+			activeLeftDraws = [];
+			activeRightDraws = [];
+			leftTitle = '';
+			rightTitle = '';
+		}
 
 		availableFieldSize = Math.max(
 			220,
@@ -157,11 +190,11 @@
 		splitCols = Math.max(1, Math.floor((stackWidth + waffleGap) / (donutSize + waffleGap)));
 
 		const splitPositions = new Map();
-		linkeAtLeastFiveDraws.forEach((draw, index) => {
+		activeLeftDraws.forEach((draw, index) => {
 			const pos = getWafflePosition(index, splitCols);
 			splitPositions.set(draw.drawNumber, { left: pos.x, top: pos.y });
 		});
-		linkeBelowFiveDraws.forEach((draw, index) => {
+		activeRightDraws.forEach((draw, index) => {
 			const pos = getWafflePosition(index, splitCols);
 			splitPositions.set(draw.drawNumber, {
 				left: stackWidth + splitGap + pos.x,
@@ -169,18 +202,20 @@
 			});
 		});
 
-		const leftRows = Math.ceil(linkeAtLeastFiveDraws.length / splitCols);
-		const rightRows = Math.ceil(linkeBelowFiveDraws.length / splitCols);
+		const leftRows = Math.ceil(activeLeftDraws.length / splitCols);
+		const rightRows = Math.ceil(activeRightDraws.length / splitCols);
 		leftStackHeight = splitHeaderHeight + leftRows * (donutSize + waffleGap) - waffleGap;
 		rightStackHeight = splitHeaderHeight + rightRows * (donutSize + waffleGap) - waffleGap;
-		vizHeight = splitByLinke
-			? Math.max(splitHeaderHeight, leftStackHeight, rightStackHeight)
-			: fieldSize;
+		vizHeight =
+			splitMode !== 'none'
+				? Math.max(splitHeaderHeight, leftStackHeight, rightStackHeight)
+				: fieldSize;
 
 		laidOutDraws = drawEntries.map((draw) => {
-			const activePos = splitByLinke
-				? splitPositions.get(draw.drawNumber)
-				: phyllotaxisPositions.get(draw.drawNumber);
+			const activePos =
+				splitMode !== 'none'
+					? splitPositions.get(draw.drawNumber)
+					: phyllotaxisPositions.get(draw.drawNumber);
 			return {
 				parts: draw.parts,
 				drawNumber: draw.drawNumber,
@@ -205,17 +240,25 @@
 		<button
 			type="button"
 			class="split-btn"
-			class:active={splitByLinke}
-			on:click={toggleSplitByLinke}
+			class:active={splitMode === 'linke5'}
+			on:click={() => toggleSplitMode('linke5')}
 		>
-			Linke über 5%
+			Die Linke über 5%
+		</button>
+		<button
+			type="button"
+			class="split-btn"
+			class:active={splitMode === 'spdgruenelinke40'}
+			on:click={() => toggleSplitMode('spdgruenelinke40')}
+		>
+			SPD + Grüne + Die Linke über 40%
 		</button>
 	</div>
 
 	<div class="viz-wrap" style={`width:${availableFieldSize}px; height:${vizHeight}px;`}>
-		{#if splitByLinke}
-			<div class="stack-title left">Die Linke ≥ 5% ({linkeAtLeastFiveDraws.length})</div>
-			<div class="stack-title right">Die Linke &lt; 5% ({linkeBelowFiveDraws.length})</div>
+		{#if splitMode !== 'none'}
+			<div class="stack-title left">{leftTitle}</div>
+			<div class="stack-title right">{rightTitle}</div>
 		{/if}
 
 		{#each laidOutDraws as draw (draw.drawNumber)}
