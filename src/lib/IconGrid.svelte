@@ -1,6 +1,7 @@
 <script>
 	import DrawDonut from '$lib/DrawDonut.svelte';
 	import SimulationTooltip from '$lib/SimulationTooltip.svelte';
+	import { buildPhyllotaxisLayout } from '$lib/phyllotaxisLayout.js';
 	import prediction from '$lib/data/bundestag_prediction_2026_simulation.json';
 
 	let donutCount = '200';
@@ -10,7 +11,6 @@
 	const baseShares = parties.map((party) => prediction.vote_shares[party] || 0);
 	const totalShare = baseShares.reduce((sum, value) => sum + value, 0) || 100;
 	const probabilities = baseShares.map((value) => value / totalShare);
-	const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 	const maxDonutSize = 62;
 	const minDonutSize = 10;
 	const viewportPadding = 32;
@@ -83,15 +83,6 @@
 		tooltipDrawNumber = null;
 	}
 
-	function getSunflowerPosition(index, spacing) {
-		const angle = index * goldenAngle;
-		const radius = spacing * Math.sqrt(index + 0.5);
-		return {
-			x: radius * Math.cos(angle),
-			y: radius * Math.sin(angle)
-		};
-	}
-
 	$: {
 		const count = Math.max(1, +donutCount);
 		draws = Array.from({ length: count }, () => buildDraw());
@@ -100,52 +91,25 @@
 			Math.min(viewportWidth - viewportPadding, viewportHeight - verticalReserve)
 		);
 
-		const unitPositions = Array.from({ length: count }, (_, index) =>
-			getSunflowerPosition(index, 1)
-		);
-		let minUnitDistance = Number.POSITIVE_INFINITY;
-		for (let i = 0; i < unitPositions.length; i++) {
-			for (let j = i + 1; j < unitPositions.length; j++) {
-				const dx = unitPositions[i].x - unitPositions[j].x;
-				const dy = unitPositions[i].y - unitPositions[j].y;
-				const d = Math.hypot(dx, dy);
-				if (d < minUnitDistance) minUnitDistance = d;
-			}
-		}
-		const maxUnitRadius = unitPositions.reduce(
-			(max, pos) => Math.max(max, Math.hypot(pos.x, pos.y)),
-			0
-		);
+		const layout = buildPhyllotaxisLayout({
+			count,
+			availableFieldSize,
+			minDonutSize,
+			maxDonutSize,
+			fieldPadding: 4,
+			minGap: 1
+		});
 
-		const k =
-			minUnitDistance > 0 && Number.isFinite(minUnitDistance)
-				? (2 * maxUnitRadius) / minUnitDistance
-				: 1;
-		const fittedSize = Math.floor((availableFieldSize - (k + 4)) / (k + 1));
-		donutSize = Math.max(minDonutSize, Math.min(maxDonutSize, fittedSize));
+		donutSize = layout.donutSize;
 		donutInner = Math.max(4, Math.round(donutSize * 0.29));
-
-		const targetMinCenterDistance = donutSize + 1;
-		const spacing =
-			minUnitDistance > 0 && Number.isFinite(minUnitDistance)
-				? targetMinCenterDistance / minUnitDistance
-				: donutSize;
-		const positions = unitPositions.map((pos) => ({
-			x: pos.x * spacing,
-			y: pos.y * spacing
-		}));
-		const maxRadius =
-			positions.reduce((max, pos) => Math.max(max, Math.hypot(pos.x, pos.y)), 0) +
-			donutSize / 2 +
-			4;
-		fieldSize = Math.min(availableFieldSize, Math.max(donutSize + 10, Math.ceil(maxRadius * 2)));
+		fieldSize = layout.fieldSize;
 
 		laidOutDraws = draws.map((parts, index) => {
-			const pos = positions[index];
+			const pos = layout.items[index];
 			return {
 				parts,
-				left: pos.x + fieldSize / 2 - donutSize / 2,
-				top: pos.y + fieldSize / 2 - donutSize / 2
+				left: pos.left,
+				top: pos.top
 			};
 		});
 	}
@@ -165,8 +129,8 @@
 		<div class="summary">Showing {donutCount} simulation draws</div>
 	</div>
 
-	<div class="sunflower-wrap">
-		<div class="sunflower" style={`width: ${fieldSize}px; height: ${fieldSize}px;`}>
+	<div class="phyllotaxis-wrap">
+		<div class="phyllotaxis" style={`width: ${fieldSize}px; height: ${fieldSize}px;`}>
 			{#each laidOutDraws as draw, index}
 				<div
 					class="icon"
@@ -205,12 +169,12 @@
 		color: #6b7280;
 	}
 
-	.sunflower-wrap {
+	.phyllotaxis-wrap {
 		width: 100%;
 		overflow: hidden;
 		padding: 2px 0 6px;
 	}
-	.sunflower {
+	.phyllotaxis {
 		position: relative;
 		margin: 0 auto;
 	}
