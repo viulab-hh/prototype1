@@ -9,8 +9,13 @@
 	const baseShares = parties.map((party) => prediction.vote_shares[party] || 0);
 	const totalShare = baseShares.reduce((sum, value) => sum + value, 0) || 100;
 	const probabilities = baseShares.map((value) => value / totalShare);
+	const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+	const donutSize = 62;
+	const donutInner = 18;
 
 	let draws = [];
+	let laidOutDraws = [];
+	let fieldSize = donutSize + 10;
 
 	function handleChange(e) {
 		donutCount = e.target.value;
@@ -41,9 +46,55 @@
 		}));
 	}
 
+	function getSunflowerPosition(index, spacing) {
+		const angle = index * goldenAngle;
+		const radius = spacing * Math.sqrt(index + 0.5);
+		return {
+			x: radius * Math.cos(angle),
+			y: radius * Math.sin(angle)
+		};
+	}
+
 	$: {
 		const count = Math.max(1, +donutCount);
 		draws = Array.from({ length: count }, () => buildDraw());
+
+		const unitPositions = Array.from({ length: count }, (_, index) =>
+			getSunflowerPosition(index, 1)
+		);
+		let minUnitDistance = Number.POSITIVE_INFINITY;
+		for (let i = 0; i < unitPositions.length; i++) {
+			for (let j = i + 1; j < unitPositions.length; j++) {
+				const dx = unitPositions[i].x - unitPositions[j].x;
+				const dy = unitPositions[i].y - unitPositions[j].y;
+				const d = Math.hypot(dx, dy);
+				if (d < minUnitDistance) minUnitDistance = d;
+			}
+		}
+
+		const targetMinCenterDistance = donutSize + 1;
+		const spacing =
+			minUnitDistance > 0 && Number.isFinite(minUnitDistance)
+				? targetMinCenterDistance / minUnitDistance
+				: donutSize;
+		const positions = unitPositions.map((pos) => ({
+			x: pos.x * spacing,
+			y: pos.y * spacing
+		}));
+		const maxRadius =
+			positions.reduce((max, pos) => Math.max(max, Math.hypot(pos.x, pos.y)), 0) +
+			donutSize / 2 +
+			4;
+		fieldSize = Math.max(donutSize + 10, Math.ceil(maxRadius * 2));
+
+		laidOutDraws = draws.map((parts, index) => {
+			const pos = positions[index];
+			return {
+				parts,
+				left: pos.x + fieldSize / 2 - donutSize / 2,
+				top: pos.y + fieldSize / 2 - donutSize / 2
+			};
+		});
 	}
 </script>
 
@@ -58,12 +109,14 @@
 	<div class="summary">Showing {donutCount} simulation draws</div>
 </div>
 
-<div class="grid">
-	{#each draws as parts}
-		<div class="icon">
-			<DrawDonut {parts} size={124} inner={38} />
-		</div>
-	{/each}
+<div class="sunflower-wrap">
+	<div class="sunflower" style={`width: ${fieldSize}px; height: ${fieldSize}px;`}>
+		{#each laidOutDraws as draw}
+			<div class="icon" style={`transform: translate(${draw.left}px, ${draw.top}px);`}>
+				<DrawDonut parts={draw.parts} size={donutSize} inner={donutInner} />
+			</div>
+		{/each}
+	</div>
 </div>
 
 <style>
@@ -80,16 +133,18 @@
 		color: #6b7280;
 	}
 
-	.grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-		gap: 12px;
-		align-items: center;
+	.sunflower-wrap {
+		width: 100%;
+		overflow: auto;
+		padding: 2px 0 6px;
+	}
+	.sunflower {
+		position: relative;
+		margin: 0 auto;
 	}
 	.icon {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		padding: 4px;
+		position: absolute;
+		left: 0;
+		top: 0;
 	}
 </style>
