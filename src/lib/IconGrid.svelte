@@ -119,14 +119,13 @@
 
 <div class="icon-grid">
 	<div class="controls">
-		<label for="count-select">Number of donuts:</label>
+		<label for="count-select">Anzahl Ziehnungen:</label>
 		<select id="count-select" on:change={handleChange} bind:value={donutCount}>
 			<option value="50">50</option>
 			<option value="100">100</option>
 			<option value="200">200</option>
 			<option value="500">500</option>
 		</select>
-		<div class="summary">Showing {donutCount} simulation draws</div>
 	</div>
 
 	<div class="phyllotaxis-wrap">
