@@ -31,6 +31,8 @@
 	let linkeBelowFiveDraws = [];
 	let rotGruenLinkeAtLeastFortyDraws = [];
 	let rotGruenLinkeBelowFortyDraws = [];
+	let cduAtLeastTwentyFiveDraws = [];
+	let cduBelowTwentyFiveDraws = [];
 	let activeLeftDraws = [];
 	let activeRightDraws = [];
 	let leftTitle = '';
@@ -116,6 +118,10 @@
 		return spd + gruene + linke;
 	}
 
+	function getCduShare(parts) {
+		return parts.find((part) => part.party === 'CDU/CSU')?.value || 0;
+	}
+
 	function getWafflePosition(index, columns) {
 		const column = index % columns;
 		const row = Math.floor(index / columns);
@@ -132,13 +138,16 @@
 			parts,
 			drawNumber: index + 1,
 			linkeShare: getLinkeShare(parts),
-			rotGruenLinkeShare: getRotGruenLinkeShare(parts)
+			rotGruenLinkeShare: getRotGruenLinkeShare(parts),
+			cduShare: getCduShare(parts)
 		}));
 
 		linkeAtLeastFiveDraws = drawEntries.filter((draw) => draw.linkeShare >= 0.05);
 		linkeBelowFiveDraws = drawEntries.filter((draw) => draw.linkeShare < 0.05);
 		rotGruenLinkeAtLeastFortyDraws = drawEntries.filter((draw) => draw.rotGruenLinkeShare >= 0.4);
 		rotGruenLinkeBelowFortyDraws = drawEntries.filter((draw) => draw.rotGruenLinkeShare < 0.4);
+		cduAtLeastTwentyFiveDraws = drawEntries.filter((draw) => draw.cduShare >= 0.25);
+		cduBelowTwentyFiveDraws = drawEntries.filter((draw) => draw.cduShare < 0.25);
 
 		if (splitMode === 'linke5') {
 			activeLeftDraws = linkeAtLeastFiveDraws;
@@ -150,6 +159,11 @@
 			activeRightDraws = rotGruenLinkeBelowFortyDraws;
 			leftTitle = `SPD + Grüne + Die Linke ≥ 40% (${activeLeftDraws.length})`;
 			rightTitle = `SPD + Grüne + Die Linke < 40% (${activeRightDraws.length})`;
+		} else if (splitMode === 'cdu25') {
+			activeLeftDraws = cduAtLeastTwentyFiveDraws;
+			activeRightDraws = cduBelowTwentyFiveDraws;
+			leftTitle = `CDU/CSU ≥ 25% (${activeLeftDraws.length})`;
+			rightTitle = `CDU/CSU < 25% (${activeRightDraws.length})`;
 		} else {
 			activeLeftDraws = [];
 			activeRightDraws = [];
@@ -252,6 +266,14 @@
 			on:click={() => toggleSplitMode('spdgruenelinke40')}
 		>
 			SPD + Grüne + Die Linke über 40%
+		</button>
+		<button
+			type="button"
+			class="split-btn"
+			class:active={splitMode === 'cdu25'}
+			on:click={() => toggleSplitMode('cdu25')}
+		>
+			CDU/CSU über 25%
 		</button>
 	</div>
 
