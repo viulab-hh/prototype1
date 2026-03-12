@@ -61,7 +61,7 @@
 <div class="grid">
 	{#each draws as parts}
 		<div class="icon">
-			<DrawDonut {parts} size={42} inner={22} />
+			<DrawDonut {parts} size={124} inner={38} />
 		</div>
 	{/each}
 </div>
@@ -82,14 +82,17 @@
 
 	.grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
-		gap: 8px;
+		grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+		gap: 12px;
 		align-items: center;
 	}
 	.icon {
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		padding: 2px;
+		padding: 10px 8px;
+		border: 1px solid #e5e7eb;
+		border-radius: 10px;
+		background: #fff;
 	}
 </style>

@@ -1,8 +1,8 @@
 <script>
 	import * as d3 from 'd3';
 	export let parts = []; // array of {party, value} values sum to 1
-	export let size = 80;
-	export let inner = 30;
+	export let size = 120;
+	export let inner = 36;
 
 	const palette = [
 		'#2563EB',
@@ -35,7 +35,7 @@
 		return arcs
 			.map(
 				(a, i) =>
-					`<path d="${arcGen(a)}" fill="${escapeHtml(palette[i % palette.length])}" stroke="#fff" stroke-width="0.5"></path>`
+					`<path d="${arcGen(a)}" fill="${escapeHtml(palette[i % palette.length])}" stroke="#fff" stroke-width="1"></path>`
 			)
 			.join('');
 	})();
