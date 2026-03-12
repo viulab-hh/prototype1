@@ -1,71 +1,69 @@
 <script>
-	import Donut from '$lib/Donut.svelte';
-	import MonteDonut from '$lib/MonteDonut.svelte';
+	import DrawDonut from '$lib/DrawDonut.svelte';
 	import prediction from '$lib/data/bundestag_prediction_2026_simulation.json';
 
-	// sample-size used for computing standard errors
-	let sampleSize = '50';
+	let donutCount = '50';
+	const simulationSampleSize = prediction.statistical?.sample_size ?? 1500;
 
-	// derive parties from the prediction file (use party_stats keys)
-	const partyStats =
-		prediction.statistical && prediction.statistical.party_stats
-			? prediction.statistical.party_stats
-			: {};
-	let parties = Object.keys(partyStats);
-	let samples = [];
+	const parties = Object.keys(prediction.vote_shares || {});
+	const baseShares = parties.map((party) => prediction.vote_shares[party] || 0);
+	const totalShare = baseShares.reduce((sum, value) => sum + value, 0) || 100;
+	const probabilities = baseShares.map((value) => value / totalShare);
 
-	// palette
-	const colors = [
-		'#2563EB',
-		'#10B981',
-		'#F59E0B',
-		'#EF4444',
-		'#8B5CF6',
-		'#06B6D4',
-		'#F97316',
-		'#8B5CF6'
-	];
+	let draws = [];
 
 	function handleChange(e) {
-		sampleSize = e.target.value;
+		donutCount = e.target.value;
 	}
 
-	function normalRandom() {
-		// Box-Muller transform
-		let u = 0,
-			v = 0;
-		while (u === 0) u = Math.random();
-		while (v === 0) v = Math.random();
-		return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+	function simulateOnce(n, probs) {
+		const counts = new Array(probs.length).fill(0);
+		for (let i = 0; i < n; i++) {
+			const r = Math.random();
+			let cumulative = 0;
+			for (let j = 0; j < probs.length; j++) {
+				cumulative += probs[j];
+				if (r < cumulative) {
+					counts[j]++;
+					break;
+				}
+			}
+		}
+		return counts;
 	}
 
-	// recompute samples when parties or sampleSize changes
+	function buildDraw() {
+		const counts = simulateOnce(simulationSampleSize, probabilities);
+		const total = counts.reduce((sum, value) => sum + value, 0) || 1;
+		return parties.map((party, index) => ({
+			party,
+			value: counts[index] / total
+		}));
+	}
+
 	$: {
-		const n = Math.max(1, +sampleSize);
-		samples = parties.map((p) => {
-			const stat = partyStats[p];
-			const mean = stat && stat.share ? stat.share : 0;
-			const pprop = mean / 100;
-			const sd_pct = Math.sqrt((pprop * (1 - pprop)) / n) * 100; // percentage points
-			const draw = Math.max(0, Math.min(100, mean + sd_pct * normalRandom()));
-			return { party: p, mean, sd_pct, draw, donutValue: draw / 100 };
-		});
+		const count = Math.max(1, +donutCount);
+		draws = Array.from({ length: count }, () => buildDraw());
 	}
 </script>
 
 <div class="controls">
-	<label for="count-select">Sample size:</label>
-	<select id="count-select" on:change={handleChange} bind:value={sampleSize}>
+	<label for="count-select">Number of donuts:</label>
+	<select id="count-select" on:change={handleChange} bind:value={donutCount}>
 		<option value="50">50</option>
 		<option value="100">100</option>
 		<option value="200">200</option>
 		<option value="500">500</option>
 	</select>
-	<div class="summary">Using sample size: {sampleSize}</div>
+	<div class="summary">Showing {donutCount} simulation draws</div>
 </div>
 
-<div>
-	<MonteDonut voteShares={prediction.vote_shares} {sampleSize} sims={1000} />
+<div class="grid">
+	{#each draws as parts}
+		<div class="icon">
+			<DrawDonut {parts} size={42} inner={22} />
+		</div>
+	{/each}
 </div>
 
 <style>
@@ -84,25 +82,14 @@
 
 	.grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-		gap: 12px;
+		grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+		gap: 8px;
 		align-items: center;
 	}
 	.icon {
 		display: flex;
-		gap: 8px;
+		justify-content: center;
 		align-items: center;
-		padding: 8px;
-		border-radius: 8px;
-		background: #fff;
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-	}
-	.label .party {
-		font-weight: 600;
-		font-size: 0.9rem;
-	}
-	.label .meta {
-		font-size: 0.8rem;
-		color: #6b7280;
+		padding: 2px;
 	}
 </style>
