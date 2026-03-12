@@ -1,5 +1,6 @@
 <script>
 	import DrawDonut from '$lib/DrawDonut.svelte';
+	import SimulationTooltip from '$lib/SimulationTooltip.svelte';
 	import prediction from '$lib/data/bundestag_prediction_2026_simulation.json';
 
 	let donutCount = '200';
@@ -10,16 +11,6 @@
 	const totalShare = baseShares.reduce((sum, value) => sum + value, 0) || 100;
 	const probabilities = baseShares.map((value) => value / totalShare);
 	const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-	const partyColors = {
-		'CDU/CSU': '#111111',
-		SPD: '#E3000F',
-		Greens: '#64A12D',
-		AfD: '#009EE0',
-		FDP: '#FFED00',
-		BSW: '#6E2C91',
-		'Die Linke': '#BE3075',
-		Others: '#9CA3AF'
-	};
 	const maxDonutSize = 62;
 	const minDonutSize = 10;
 	const viewportPadding = 32;
@@ -66,18 +57,6 @@
 			count: counts[index],
 			value: counts[index] / total
 		}));
-	}
-
-	function getPartyColor(party) {
-		return partyColors[party] || '#9CA3AF';
-	}
-
-	function getPartyLabel(party) {
-		const labels = {
-			Greens: 'Grüne',
-			Others: 'Sonstige'
-		};
-		return labels[party] || party;
 	}
 
 	function showTooltip(parts, drawNumber, event) {
@@ -207,20 +186,7 @@
 	</div>
 </div>
 
-{#if tooltipParts}
-	<div class="tooltip" style={`left: ${tooltipX}px; top: ${tooltipY}px;`}>
-		<div class="tooltip-header">Simulationsziehung {tooltipDrawNumber}</div>
-		{#each tooltipParts as part}
-			<div class="tooltip-row">
-				<span class="party-wrap">
-					<span class="party-dot" style={`background-color: ${getPartyColor(part.party)};`}></span>
-					<span class="party">{getPartyLabel(part.party)}</span>
-				</span>
-				<span>{(part.value * 100).toFixed(2)}%</span>
-			</div>
-		{/each}
-	</div>
-{/if}
+<SimulationTooltip parts={tooltipParts} drawNumber={tooltipDrawNumber} x={tooltipX} y={tooltipY} />
 
 <style>
 	.icon-grid {
@@ -252,43 +218,5 @@
 		position: absolute;
 		left: 0;
 		top: 0;
-	}
-	.tooltip {
-		position: fixed;
-		z-index: 50;
-		pointer-events: none;
-		background: #ffffff;
-		color: #111827;
-		padding: 8px 10px;
-		border-radius: 8px;
-		font-size: 0.78rem;
-		line-height: 1.35;
-		border: 1px solid #e5e7eb;
-		box-shadow: 0 8px 18px rgba(17, 24, 39, 0.12);
-		min-width: 170px;
-	}
-	.tooltip-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 10px;
-	}
-	.tooltip-header {
-		font-weight: 700;
-		margin-bottom: 6px;
-	}
-	.party-wrap {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-	}
-	.party-dot {
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-		flex-shrink: 0;
-	}
-	.party {
-		font-weight: 600;
 	}
 </style>
