@@ -31,6 +31,8 @@
 	let linkeBelowFiveDraws = [];
 	let rotGruenLinkeAtLeastFortyDraws = [];
 	let rotGruenLinkeBelowFortyDraws = [];
+	let fdpAtLeastFiveDraws = [];
+	let fdpBelowFiveDraws = [];
 	let cduAtLeastTwentyFiveDraws = [];
 	let cduBelowTwentyFiveDraws = [];
 	let activeLeftDraws = [];
@@ -118,6 +120,10 @@
 		return spd + gruene + linke;
 	}
 
+	function getFdpShare(parts) {
+		return parts.find((part) => part.party === 'FDP')?.value || 0;
+	}
+
 	function getCduShare(parts) {
 		return parts.find((part) => part.party === 'CDU/CSU')?.value || 0;
 	}
@@ -138,12 +144,15 @@
 			parts,
 			drawNumber: index + 1,
 			linkeShare: getLinkeShare(parts),
+			fdpShare: getFdpShare(parts),
 			rotGruenLinkeShare: getRotGruenLinkeShare(parts),
 			cduShare: getCduShare(parts)
 		}));
 
 		linkeAtLeastFiveDraws = drawEntries.filter((draw) => draw.linkeShare >= 0.05);
 		linkeBelowFiveDraws = drawEntries.filter((draw) => draw.linkeShare < 0.05);
+		fdpAtLeastFiveDraws = drawEntries.filter((draw) => draw.fdpShare >= 0.08);
+		fdpBelowFiveDraws = drawEntries.filter((draw) => draw.fdpShare < 0.08);
 		rotGruenLinkeAtLeastFortyDraws = drawEntries.filter((draw) => draw.rotGruenLinkeShare >= 0.4);
 		rotGruenLinkeBelowFortyDraws = drawEntries.filter((draw) => draw.rotGruenLinkeShare < 0.4);
 		cduAtLeastTwentyFiveDraws = drawEntries.filter((draw) => draw.cduShare >= 0.25);
@@ -154,6 +163,11 @@
 			activeRightDraws = linkeBelowFiveDraws;
 			leftTitle = `Die Linke ≥ 5% (${activeLeftDraws.length})`;
 			rightTitle = `Die Linke < 5% (${activeRightDraws.length})`;
+		} else if (splitMode === 'fdp5') {
+			activeLeftDraws = fdpAtLeastFiveDraws;
+			activeRightDraws = fdpBelowFiveDraws;
+			leftTitle = `FDP ≥ 8% (${activeLeftDraws.length})`;
+			rightTitle = `FDP < 8% (${activeRightDraws.length})`;
 		} else if (splitMode === 'spdgruenelinke40') {
 			activeLeftDraws = rotGruenLinkeAtLeastFortyDraws;
 			activeRightDraws = rotGruenLinkeBelowFortyDraws;
@@ -258,6 +272,14 @@
 			on:click={() => toggleSplitMode('linke5')}
 		>
 			Die Linke über 5%
+		</button>
+		<button
+			type="button"
+			class="split-btn"
+			class:active={splitMode === 'fdp5'}
+			on:click={() => toggleSplitMode('fdp5')}
+		>
+			FDP über 8%
 		</button>
 		<button
 			type="button"
