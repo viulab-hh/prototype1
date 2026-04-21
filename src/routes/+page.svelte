@@ -3,7 +3,7 @@
 	import D3Chart from '$lib/D3Chart.svelte';
 </script>
 
-<h1>Mögliche Wahrlausgänge</h1>
-<p>Alle Möglichkeiten resultieren aus derselben Umfrage</p>
+<h1>Visualisierung möglicher Wahlausgänge</h1>
+<p>Alle Möglichkeiten resultieren aus derselben Umfrage.</p>
 
 <IconGrid />
