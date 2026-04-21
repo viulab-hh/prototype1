@@ -33,6 +33,7 @@
 	let tooltipDrawNumber = null;
 	let tooltipX = 0;
 	let tooltipY = 0;
+	let activeDrawId = null;
 
 	function handleChange(event) {
 		donutCount = event.target.value;
@@ -220,6 +221,10 @@
 		moveTooltip(event);
 	}
 
+	function activateDraw(id) {
+		activeDrawId = id;
+	}
+
 	function showTooltipFromElement(parts, drawNumber, element) {
 		const rect = element.getBoundingClientRect();
 		tooltipParts = parts;
@@ -236,6 +241,10 @@
 	function hideTooltip() {
 		tooltipParts = null;
 		tooltipDrawNumber = null;
+	}
+
+	function clearActiveDraw() {
+		activeDrawId = null;
 	}
 
 	$: {
@@ -287,21 +296,37 @@
 			{#each laidOutDraws as draw, index (draw.id)}
 				<div
 					class="icon"
-					style={`transform: translate(${draw.left}px, ${draw.top}px);`}
+					class:context-muted={activeDrawId !== null && activeDrawId !== draw.id}
+					class:is-active={activeDrawId === draw.id}
+					style={`left: ${draw.left}px; top: ${draw.top}px;`}
 					role="button"
 					tabindex="0"
-					on:mouseenter={(event) => showTooltip(draw.parts, index + 1, event)}
+					on:mouseenter={(event) => {
+						activateDraw(draw.id);
+						showTooltip(draw.parts, index + 1, event);
+					}}
 					on:mousemove={moveTooltip}
-					on:mouseleave={hideTooltip}
-					on:focus={(event) => showTooltipFromElement(draw.parts, index + 1, event.currentTarget)}
-					on:blur={hideTooltip}
+					on:mouseleave={() => {
+						clearActiveDraw();
+						hideTooltip();
+					}}
+					on:focus={(event) => {
+						activateDraw(draw.id);
+						showTooltipFromElement(draw.parts, index + 1, event.currentTarget);
+					}}
+					on:blur={() => {
+						clearActiveDraw();
+						hideTooltip();
+					}}
 				>
-					<DrawDonut
-						parts={draw.parts}
-						size={donutSize}
-						inner={donutInner}
-						referenceMinimums={minimumShares}
-					/>
+					<div class="icon-visual">
+						<DrawDonut
+							parts={draw.parts}
+							size={donutSize}
+							inner={donutInner}
+							referenceMinimums={minimumShares}
+						/>
+					</div>
 				</div>
 			{/each}
 		</div>
@@ -345,7 +370,36 @@
 
 	.icon {
 		position: absolute;
-		left: 0;
-		top: 0;
+		z-index: 1;
+		outline: none;
+	}
+
+	.icon-visual {
+		transform-origin: center;
+		transition:
+			transform 180ms ease,
+			filter 180ms ease,
+			opacity 180ms ease;
+	}
+
+	.icon.is-active {
+		z-index: 3;
+	}
+
+	.icon.is-active .icon-visual {
+		transform: scale(1.75);
+		filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.16));
+	}
+
+	.icon.context-muted .icon-visual {
+		transform: scale(0.86);
+		opacity: 0.42;
+		filter: saturate(0.75);
+	}
+
+	.icon:focus-visible .icon-visual {
+		outline: 2px solid #111;
+		outline-offset: 6px;
+		border-radius: 999px;
 	}
 </style>
