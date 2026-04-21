@@ -308,7 +308,13 @@
 	</div>
 </div>
 
-<SimulationTooltip parts={tooltipParts} drawNumber={tooltipDrawNumber} x={tooltipX} y={tooltipY} />
+<SimulationTooltip
+	parts={tooltipParts}
+	drawNumber={tooltipDrawNumber}
+	x={tooltipX}
+	y={tooltipY}
+	referenceMinimums={minimumShares}
+/>
 
 <style>
 	.icon-grid {
