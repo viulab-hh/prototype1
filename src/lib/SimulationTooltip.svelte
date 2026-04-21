@@ -1,6 +1,7 @@
 <script>
 	export let parts = [];
 	export let drawNumber = null;
+	export let groupSize = null;
 	export let x = 0;
 	export let y = 0;
 
@@ -31,7 +32,10 @@
 
 {#if parts && parts.length}
 	<div class="tooltip" style={`left: ${x}px; top: ${y}px;`}>
-		<div class="tooltip-header">Simulationsziehung {drawNumber}</div>
+		<div class="tooltip-header">Gruppe {drawNumber}</div>
+		{#if groupSize}
+			<div class="tooltip-subheader">repräsentiert {groupSize} Simulationen</div>
+		{/if}
 		{#each parts as part}
 			<div class="tooltip-row">
 				<span class="party-wrap">
@@ -67,6 +71,11 @@
 	}
 	.tooltip-header {
 		font-weight: 700;
+		margin-bottom: 2px;
+	}
+	.tooltip-subheader {
+		color: #6b7280;
+		font-size: 0.72rem;
 		margin-bottom: 6px;
 	}
 	.party-wrap {
