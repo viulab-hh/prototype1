@@ -1,5 +1,4 @@
 <script>
-	import * as d3 from 'd3';
 	import DrawDonut from '$lib/DrawDonut.svelte';
 	import SimulationTooltip from '$lib/SimulationTooltip.svelte';
 	import { buildPhyllotaxisLayout } from '$lib/phyllotaxisLayout.js';
@@ -31,7 +30,6 @@
 	let fieldSize = donutSize + 10;
 	let labelGutter = maxLabelGutter;
 	let shellWidth = fieldSize + labelGutter;
-	let highlightClusterPath = null;
 	let highlightCount = 0;
 	let highlightShareLabel = '';
 	let highlightLabelPosition = null;
@@ -81,6 +79,16 @@
 		return Array.from({ length: poolSize }, () => buildDraw());
 	}
 
+	function buildMinimumShares(pool) {
+		const minimums = Object.fromEntries(parties.map((party) => [party, 1]));
+		for (const draw of pool) {
+			for (const part of draw) {
+				minimums[part.party] = Math.min(minimums[part.party] ?? 1, part.value);
+			}
+		}
+		return minimums;
+	}
+
 	function compareDraws(a, b) {
 		for (const party of ['BSW', 'CDU/CSU', 'SPD', 'Greens', 'AfD', 'FDP', 'Die Linke', 'Others']) {
 			const valueA = a.find((part) => part.party === party)?.value ?? 0;
@@ -91,15 +99,15 @@
 	}
 
 	function mergeDrawGroup(group) {
-		const totals = new Map(parties.map((party) => [party, 0]));
+		const totals = Object.fromEntries(parties.map((party) => [party, 0]));
 		for (const draw of group) {
 			for (const part of draw) {
-				totals.set(part.party, (totals.get(part.party) ?? 0) + part.value);
+				totals[part.party] = (totals[part.party] ?? 0) + part.value;
 			}
 		}
 
 		return parties.map((party) => {
-			const meanValue = (totals.get(party) ?? 0) / group.length;
+			const meanValue = (totals[party] ?? 0) / group.length;
 			return {
 				party,
 				value: meanValue,
@@ -137,26 +145,12 @@
 		return false;
 	}
 
-	function buildClusterHullPath(highlightedDraws, size) {
-		if (highlightedDraws.length === 0) return null;
-
-		const centerRadius = size * 0.62;
-		const perimeterPoints = highlightedDraws.flatMap((draw) => {
-			const cx = draw.left + size / 2;
-			const cy = draw.top + size / 2;
-			return Array.from({ length: 10 }, (_, step) => {
-				const angle = (step / 10) * Math.PI * 2;
-				return [cx + Math.cos(angle) * centerRadius, cy + Math.sin(angle) * centerRadius];
-			});
-		});
-
-		const hull = d3.polygonHull(perimeterPoints);
-		if (!hull || hull.length < 3) return null;
-
-		return d3.line().curve(d3.curveCatmullRomClosed.alpha(0.7))(hull);
+	function getMaximumPartyShare(parts) {
+		return Math.max(...parts.map((part) => part.value), 0);
 	}
 
 	const mergedDrawPool = buildMergedDrawPool(mergedDrawPoolSize);
+	const minimumShares = buildMinimumShares(mergedDrawPool);
 
 	function showTooltip(parts, drawNumber, groupSize, event) {
 		tooltipParts = parts;
@@ -190,9 +184,7 @@
 		draws = buildMergedDraws(mergedDrawPool, count);
 		const availableShellWidth = Math.max(240, viewportWidth - viewportPadding);
 		const availableShellHeight = Math.max(220, viewportHeight - verticalReserve);
-		labelGutter = Math.round(
-			Math.max(72, Math.min(maxLabelGutter, availableShellWidth * 0.18))
-		);
+		labelGutter = Math.round(Math.max(72, Math.min(maxLabelGutter, availableShellWidth * 0.18)));
 		const availableFieldSize = Math.max(
 			160,
 			Math.min(availableShellWidth - labelGutter, availableShellHeight)
@@ -219,10 +211,12 @@
 
 		const clusteredDraws =
 			activeCase === 'none'
-				? decoratedDraws
+				? [...decoratedDraws].sort(
+						(a, b) => getMaximumPartyShare(b.parts) - getMaximumPartyShare(a.parts) || a.id - b.id
+					)
 				: [...decoratedDraws].sort((a, b) => {
-						if (a.isHighlighted === b.isHighlighted) return a.id - b.id;
-						return a.isHighlighted ? -1 : 1;
+						if (a.isHighlighted !== b.isHighlighted) return a.isHighlighted ? -1 : 1;
+						return getMaximumPartyShare(b.parts) - getMaximumPartyShare(a.parts) || a.id - b.id;
 					});
 
 		laidOutDraws = clusteredDraws.map((draw, index) => {
@@ -237,10 +231,10 @@
 		const highlightedDraws = laidOutDraws.filter((draw) => draw.isHighlighted);
 		highlightCount = highlightedDraws.reduce((sum, draw) => sum + draw.groupSize, 0);
 		highlightShareLabel =
-			mergedDrawPool.length > 0 ? `${Math.round((highlightCount / mergedDrawPool.length) * 100)}%` : '';
-		highlightClusterPath = buildClusterHullPath(highlightedDraws, donutSize);
+			mergedDrawPool.length > 0
+				? `${Math.round((highlightCount / mergedDrawPool.length) * 100)}%`
+				: '';
 		if (highlightedDraws.length > 0) {
-			const minLeft = Math.min(...highlightedDraws.map((draw) => draw.left));
 			const minTop = Math.min(...highlightedDraws.map((draw) => draw.top));
 			const maxBottom = Math.max(...highlightedDraws.map((draw) => draw.top + donutSize));
 
@@ -295,20 +289,10 @@
 				</div>
 			{/if}
 			<div class="phyllotaxis" style={`width: ${fieldSize}px; height: ${fieldSize}px;`}>
-				{#if highlightClusterPath}
-					<svg
-						class="highlight-cluster"
-						width={fieldSize}
-						height={fieldSize}
-						viewBox={`0 0 ${fieldSize} ${fieldSize}`}
-						aria-hidden="true"
-					>
-						<path d={highlightClusterPath}></path>
-					</svg>
-				{/if}
-				{#each laidOutDraws as draw, index (draw.id)}
+				{#each laidOutDraws as draw (draw.id)}
 					<div
 						class="icon"
+						class:dimmed={activeCase !== 'none' && !draw.isHighlighted}
 						style={`transform: translate(${draw.left}px, ${draw.top}px);`}
 						role="button"
 						tabindex="0"
@@ -326,7 +310,12 @@
 							)}
 						on:blur={hideTooltip}
 					>
-						<DrawDonut parts={draw.parts} size={donutSize} inner={donutInner} />
+						<DrawDonut
+							parts={draw.parts}
+							size={donutSize}
+							inner={donutInner}
+							referenceMinimums={minimumShares}
+						/>
 					</div>
 				{/each}
 			</div>
@@ -340,6 +329,7 @@
 	groupSize={tooltipGroupSize}
 	x={tooltipX}
 	y={tooltipY}
+	referenceMinimums={minimumShares}
 />
 
 <style>
@@ -394,19 +384,6 @@
 			width 450ms ease,
 			height 450ms ease;
 	}
-	.highlight-cluster {
-		position: absolute;
-		inset: 0;
-		overflow: visible;
-		pointer-events: none;
-	}
-	.highlight-cluster path {
-		fill: rgba(17, 17, 17, 0.14);
-		stroke: rgba(17, 17, 17, 0.08);
-		stroke-width: 1;
-		filter: drop-shadow(0 18px 30px rgba(17, 17, 17, 0.08));
-		transition: d 450ms ease;
-	}
 	.highlight-count {
 		position: absolute;
 		z-index: 0;
@@ -423,5 +400,9 @@
 		left: 0;
 		top: 0;
 		z-index: 1;
+		transition: opacity 220ms ease;
+	}
+	.icon.dimmed {
+		opacity: 0.2;
 	}
 </style>
