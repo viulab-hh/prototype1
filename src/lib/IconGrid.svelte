@@ -3,6 +3,7 @@
 	import SimulationTooltip from '$lib/SimulationTooltip.svelte';
 	import { buildPhyllotaxisLayout } from '$lib/phyllotaxisLayout.js';
 	import prediction from '$lib/data/bundestag_prediction_2026_simulation.json';
+	import { SvelteMap } from 'svelte/reactivity';
 
 	let donutCount = '200';
 	const simulationSampleSize = prediction.statistical?.sample_size ?? 1500;
@@ -27,14 +28,6 @@
 	let draws = [];
 	let drawEntries = [];
 	let laidOutDraws = [];
-	let linkeAtLeastFiveDraws = [];
-	let linkeBelowFiveDraws = [];
-	let rotGruenLinkeAtLeastFortyDraws = [];
-	let rotGruenLinkeBelowFortyDraws = [];
-	let fdpAtLeastFiveDraws = [];
-	let fdpBelowFiveDraws = [];
-	let cduAtLeastTwentyFiveDraws = [];
-	let cduBelowTwentyFiveDraws = [];
 	let activeLeftDraws = [];
 	let activeRightDraws = [];
 	let leftTitle = '';
@@ -50,10 +43,6 @@
 	let tooltipDrawNumber = null;
 	let tooltipX = 0;
 	let tooltipY = 0;
-
-	function handleChange(e) {
-		donutCount = e.target.value;
-	}
 
 	function toggleSplitMode(mode) {
 		splitMode = splitMode === mode ? 'none' : mode;
@@ -109,23 +98,8 @@
 		tooltipDrawNumber = null;
 	}
 
-	function getLinkeShare(parts) {
-		return parts.find((part) => part.party === 'Die Linke')?.value || 0;
-	}
-
-	function getRotGruenLinkeShare(parts) {
-		const spd = parts.find((part) => part.party === 'SPD')?.value || 0;
-		const gruene = parts.find((part) => part.party === 'Greens')?.value || 0;
-		const linke = parts.find((part) => part.party === 'Die Linke')?.value || 0;
-		return spd + gruene + linke;
-	}
-
-	function getFdpShare(parts) {
-		return parts.find((part) => part.party === 'FDP')?.value || 0;
-	}
-
-	function getCduShare(parts) {
-		return parts.find((part) => part.party === 'CDU/CSU')?.value || 0;
+	function getPartyShare(parts, ...names) {
+		return names.reduce((sum, name) => sum + (parts.find((p) => p.party === name)?.value ?? 0), 0);
 	}
 
 	function getWafflePosition(index, columns) {
@@ -140,44 +114,43 @@
 	$: {
 		const count = Math.max(1, +donutCount);
 		draws = Array.from({ length: count }, () => buildDraw());
+		const splitConfigs = {
+			linke5: {
+				parties: ['Die Linke'],
+				threshold: 0.05,
+				labelGte: 'Die Linke ≥ 5%',
+				labelLt: 'Die Linke < 5%'
+			},
+			fdp5: { parties: ['FDP'], threshold: 0.08, labelGte: 'FDP ≥ 8%', labelLt: 'FDP < 8%' },
+			spdgruenelinke40: {
+				parties: ['SPD', 'Greens', 'Die Linke'],
+				threshold: 0.4,
+				labelGte: 'SPD + Grüne + Die Linke ≥ 40%',
+				labelLt: 'SPD + Grüne + Die Linke < 40%'
+			},
+			cdu25: {
+				parties: ['CDU/CSU'],
+				threshold: 0.25,
+				labelGte: 'CDU/CSU ≥ 25%',
+				labelLt: 'CDU/CSU < 25%'
+			}
+		};
+
 		drawEntries = draws.map((parts, index) => ({
 			parts,
-			drawNumber: index + 1,
-			linkeShare: getLinkeShare(parts),
-			fdpShare: getFdpShare(parts),
-			rotGruenLinkeShare: getRotGruenLinkeShare(parts),
-			cduShare: getCduShare(parts)
+			drawNumber: index + 1
 		}));
 
-		linkeAtLeastFiveDraws = drawEntries.filter((draw) => draw.linkeShare >= 0.05);
-		linkeBelowFiveDraws = drawEntries.filter((draw) => draw.linkeShare < 0.05);
-		fdpAtLeastFiveDraws = drawEntries.filter((draw) => draw.fdpShare >= 0.08);
-		fdpBelowFiveDraws = drawEntries.filter((draw) => draw.fdpShare < 0.08);
-		rotGruenLinkeAtLeastFortyDraws = drawEntries.filter((draw) => draw.rotGruenLinkeShare >= 0.4);
-		rotGruenLinkeBelowFortyDraws = drawEntries.filter((draw) => draw.rotGruenLinkeShare < 0.4);
-		cduAtLeastTwentyFiveDraws = drawEntries.filter((draw) => draw.cduShare >= 0.25);
-		cduBelowTwentyFiveDraws = drawEntries.filter((draw) => draw.cduShare < 0.25);
-
-		if (splitMode === 'linke5') {
-			activeLeftDraws = linkeAtLeastFiveDraws;
-			activeRightDraws = linkeBelowFiveDraws;
-			leftTitle = `Die Linke ≥ 5% (${activeLeftDraws.length})`;
-			rightTitle = `Die Linke < 5% (${activeRightDraws.length})`;
-		} else if (splitMode === 'fdp5') {
-			activeLeftDraws = fdpAtLeastFiveDraws;
-			activeRightDraws = fdpBelowFiveDraws;
-			leftTitle = `FDP ≥ 8% (${activeLeftDraws.length})`;
-			rightTitle = `FDP < 8% (${activeRightDraws.length})`;
-		} else if (splitMode === 'spdgruenelinke40') {
-			activeLeftDraws = rotGruenLinkeAtLeastFortyDraws;
-			activeRightDraws = rotGruenLinkeBelowFortyDraws;
-			leftTitle = `SPD + Grüne + Die Linke ≥ 40% (${activeLeftDraws.length})`;
-			rightTitle = `SPD + Grüne + Die Linke < 40% (${activeRightDraws.length})`;
-		} else if (splitMode === 'cdu25') {
-			activeLeftDraws = cduAtLeastTwentyFiveDraws;
-			activeRightDraws = cduBelowTwentyFiveDraws;
-			leftTitle = `CDU/CSU ≥ 25% (${activeLeftDraws.length})`;
-			rightTitle = `CDU/CSU < 25% (${activeRightDraws.length})`;
+		const cfg = splitConfigs[splitMode];
+		if (cfg) {
+			activeLeftDraws = drawEntries.filter(
+				(d) => getPartyShare(d.parts, ...cfg.parties) >= cfg.threshold
+			);
+			activeRightDraws = drawEntries.filter(
+				(d) => getPartyShare(d.parts, ...cfg.parties) < cfg.threshold
+			);
+			leftTitle = `${cfg.labelGte} (${activeLeftDraws.length})`;
+			rightTitle = `${cfg.labelLt} (${activeRightDraws.length})`;
 		} else {
 			activeLeftDraws = [];
 			activeRightDraws = [];
@@ -204,7 +177,7 @@
 		fieldSize = layout.fieldSize;
 
 		const phyllotaxisOffsetX = Math.max(0, (availableFieldSize - fieldSize) / 2);
-		const phyllotaxisPositions = new Map(
+		const phyllotaxisPositions = new SvelteMap(
 			layout.items.map((pos, index) => [
 				drawEntries[index].drawNumber,
 				{
@@ -217,7 +190,7 @@
 		const stackWidth = Math.max(80, Math.floor((availableFieldSize - splitGap) / 2));
 		splitCols = Math.max(1, Math.floor((stackWidth + waffleGap) / (donutSize + waffleGap)));
 
-		const splitPositions = new Map();
+		const splitPositions = new SvelteMap();
 		activeLeftDraws.forEach((draw, index) => {
 			const pos = getWafflePosition(index, splitCols);
 			splitPositions.set(draw.drawNumber, { left: pos.x, top: pos.y });
@@ -259,7 +232,7 @@
 <div class="icon-grid">
 	<div class="controls">
 		<label for="count-select">Anzahl Ziehnungen:</label>
-		<select id="count-select" on:change={handleChange} bind:value={donutCount}>
+		<select id="count-select" bind:value={donutCount}>
 			<option value="50">50</option>
 			<option value="100">100</option>
 			<option value="200">200</option>
