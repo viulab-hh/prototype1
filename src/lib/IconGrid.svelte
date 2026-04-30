@@ -1,6 +1,6 @@
 <script>
-	import DrawDonut from '$lib/DrawDonut.svelte';
 	import SimulationTooltip from '$lib/SimulationTooltip.svelte';
+	import IconStage from '$lib/iconGrid/IconStage.svelte';
 	import LayoutSwitch from '$lib/iconGrid/LayoutSwitch.svelte';
 	import ScenarioControls from '$lib/iconGrid/ScenarioControls.svelte';
 	import {
@@ -16,7 +16,6 @@
 	} from '$lib/iconGrid/simulation.js';
 	import { buildPhyllotaxisView, getWafflePosition } from '$lib/iconGrid/layout.js';
 	import prediction from '$lib/data/bundestag_prediction_2026_simulation.json';
-	import { flip } from 'svelte/animate';
 	import { SvelteMap } from 'svelte/reactivity';
 
 	let donutCount = '200';
@@ -256,63 +255,26 @@
 		on:scenariochange={(event) => toggleScenario(event.detail.mode)}
 	/>
 
-	<div
-		class="stage-wrap"
-		class:cluster-stage={layoutMode === 'cluster'}
-		class:waffle-stage={layoutMode !== 'cluster'}
-		style={`width:${availableFieldSize}px; height:${layoutMode === 'cluster' ? fieldSize : vizHeight}px;`}
-	>
-		{#if layoutMode === 'cluster' && highlightLabelPosition}
-			<div
-				class="highlight-count"
-				style={`left: ${clusterLabelAnchorX}px; top: ${highlightLabelPosition.top}px;`}
-				aria-hidden="true"
-			>
-				{highlightShareLabel}
-			</div>
-		{/if}
-
-		{#if layoutMode !== 'cluster' && scenarioMode !== 'none'}
-			<div class="stack-title left">{scenarioHeader.left}</div>
-			<div class="stack-title right">{scenarioHeader.right}</div>
-		{/if}
-
-		<div
-			class="stage-canvas"
-			style={`width:${availableFieldSize}px; height:${layoutMode === 'cluster' ? fieldSize : vizHeight}px;`}
-		>
-			{#each laidOutDraws as draw (draw.drawNumber)}
-				<div
-					class="icon"
-					class:cluster-icon={layoutMode === 'cluster'}
-					class:dimmed={layoutMode === 'cluster' && scenarioMode !== 'none' && !draw.isHighlighted}
-					style={`transform: translate(${draw.left}px, ${draw.top}px);`}
-					role="button"
-					tabindex="0"
-					animate:flip={{ duration: 450, easing: (t) => t * (2 - t) }}
-					on:mouseenter={(event) =>
-						showTooltip(draw.parts, draw.drawNumber, draw.groupSize ?? null, event)}
-					on:mousemove={moveTooltip}
-					on:mouseleave={hideTooltip}
-					on:focus={(event) =>
-						showTooltipFromElement(
-							draw.parts,
-							draw.drawNumber,
-							draw.groupSize ?? null,
-							event.currentTarget
-						)}
-					on:blur={hideTooltip}
-				>
-					<DrawDonut
-						parts={draw.parts}
-						size={donutSize}
-						inner={donutInner}
-						referenceMinimums={minimumShares}
-					/>
-				</div>
-			{/each}
-		</div>
-	</div>
+	<IconStage
+		{layoutMode}
+		{scenarioMode}
+		{availableFieldSize}
+		{fieldSize}
+		{vizHeight}
+		{highlightLabelPosition}
+		{clusterLabelAnchorX}
+		{highlightShareLabel}
+		{scenarioHeader}
+		{laidOutDraws}
+		{donutSize}
+		{donutInner}
+		{minimumShares}
+		onIconEnter={showTooltip}
+		onIconMove={moveTooltip}
+		onIconLeave={hideTooltip}
+		onIconFocus={showTooltipFromElement}
+		onIconBlur={hideTooltip}
+	/>
 </div>
 
 <SimulationTooltip
@@ -327,62 +289,5 @@
 <style>
 	.icon-grid {
 		font-family: sans-serif;
-	}
-	.stage-wrap {
-		position: relative;
-		margin: 0 auto;
-		transition: height 650ms cubic-bezier(0.2, 0.75, 0.2, 1);
-	}
-	.waffle-stage {
-		overflow: hidden;
-	}
-	.cluster-stage {
-		overflow: visible;
-	}
-	.stack-title {
-		position: absolute;
-		top: 0;
-		width: calc((100% - 16px) / 2);
-		font-size: 0.9rem;
-		font-weight: 600;
-		line-height: 1.2;
-		pointer-events: none;
-	}
-	.stack-title.left {
-		left: 0;
-	}
-	.stack-title.right {
-		left: calc(((100% - 16px) / 2) + 16px);
-	}
-	.stage-canvas {
-		position: relative;
-		margin: 0 auto;
-		transition:
-			width 450ms ease,
-			height 450ms ease;
-	}
-	.highlight-count {
-		position: absolute;
-		z-index: 0;
-		color: rgba(17, 17, 17, 0.3);
-		font-size: clamp(2.5rem, 6vw, 5.5rem);
-		font-weight: 700;
-		line-height: 1;
-		transform: translate(-100%, -50%);
-		pointer-events: none;
-		user-select: none;
-	}
-	.icon {
-		position: absolute;
-		left: 0;
-		top: 0;
-		transition: transform 650ms cubic-bezier(0.2, 0.75, 0.2, 1);
-	}
-	.cluster-icon {
-		z-index: 1;
-		transition: opacity 220ms ease;
-	}
-	.icon.dimmed {
-		opacity: 0.2;
 	}
 </style>
