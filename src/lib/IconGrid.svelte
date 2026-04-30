@@ -9,8 +9,7 @@
 	const mergedDrawPoolSize = 5000;
 	let donutCount = '200';
 	let layoutMode = 'waffle';
-	let activeCase = 'none';
-	let splitMode = 'none';
+	let scenarioMode = 'none';
 	const simulationSampleSize = prediction.statistical?.sample_size ?? 1500;
 
 	const parties = Object.keys(prediction.vote_shares || {});
@@ -54,31 +53,49 @@
 	let tooltipGroupSize = null;
 	let tooltipX = 0;
 	let tooltipY = 0;
+	let sampledDraws = [];
+	let sampledDrawCount = 0;
 
-	const splitConfigs = {
+	const scenarioConfigs = {
 		linke5: {
 			parties: ['Die Linke'],
 			threshold: 0.05,
-			labelGte: 'Die Linke ≥ 5%',
-			labelLt: 'Die Linke < 5%'
+			comparison: 'gte',
+			labelMatch: 'Die Linke ≥ 5%',
+			labelOther: 'Die Linke < 5%',
+			buttonLabel: 'Die Linke über 5%'
 		},
 		fdp5: {
 			parties: ['FDP'],
 			threshold: 0.08,
-			labelGte: 'FDP ≥ 8%',
-			labelLt: 'FDP < 8%'
+			comparison: 'gte',
+			labelMatch: 'FDP ≥ 8%',
+			labelOther: 'FDP < 8%',
+			buttonLabel: 'FDP über 8%'
 		},
 		spdgruenelinke40: {
 			parties: ['SPD', 'Greens', 'Die Linke'],
 			threshold: 0.4,
-			labelGte: 'SPD + Grüne + Die Linke ≥ 40%',
-			labelLt: 'SPD + Grüne + Die Linke < 40%'
+			comparison: 'gte',
+			labelMatch: 'SPD + Grüne + Die Linke ≥ 40%',
+			labelOther: 'SPD + Grüne + Die Linke < 40%',
+			buttonLabel: 'SPD + Grüne + Die Linke über 40%'
 		},
 		cdu25: {
 			parties: ['CDU/CSU'],
 			threshold: 0.25,
-			labelGte: 'CDU/CSU ≥ 25%',
-			labelLt: 'CDU/CSU < 25%'
+			comparison: 'gte',
+			labelMatch: 'CDU/CSU ≥ 25%',
+			labelOther: 'CDU/CSU < 25%',
+			buttonLabel: 'CDU/CSU über 25%'
+		},
+		'bsw-below-5': {
+			parties: ['BSW'],
+			threshold: 0.05,
+			comparison: 'lt',
+			labelMatch: 'BSW < 5%',
+			labelOther: 'BSW ≥ 5%',
+			buttonLabel: 'BSW unter 5%'
 		}
 	};
 
@@ -87,13 +104,8 @@
 		hideTooltip();
 	}
 
-	function toggleSplitMode(mode) {
-		splitMode = splitMode === mode ? 'none' : mode;
-		hideTooltip();
-	}
-
-	function selectCase(caseId) {
-		activeCase = caseId;
+	function toggleScenario(mode) {
+		scenarioMode = scenarioMode === mode ? 'none' : mode;
 		hideTooltip();
 	}
 
@@ -184,13 +196,12 @@
 		});
 	}
 
-	function isBswBelowThreshold(parts, threshold = 0.05) {
-		return parts.some((part) => part.party === 'BSW' && part.value < threshold);
-	}
-
-	function matchesActiveCase(parts) {
-		if (activeCase === 'bsw-below-5') return isBswBelowThreshold(parts);
-		return false;
+	function matchesScenario(parts, mode) {
+		if (mode === 'none') return false;
+		const cfg = scenarioConfigs[mode];
+		if (!cfg) return false;
+		const share = getPartyShare(parts, ...cfg.parties);
+		return cfg.comparison === 'lt' ? share < cfg.threshold : share >= cfg.threshold;
 	}
 
 	function getMaximumPartyShare(parts) {
@@ -242,16 +253,27 @@
 
 	$: {
 		const count = Math.max(1, +donutCount);
+		const sharedFieldSize = Math.max(
+			220,
+			Math.min(viewportWidth - viewportPadding, viewportHeight - verticalReserve)
+		);
+		if (sampledDrawCount !== count) {
+			sampledDraws = Array.from({ length: count }, () => buildDraw());
+			sampledDrawCount = count;
+		}
+		drawEntries = sampledDraws.map((parts, index) => ({
+			parts,
+			drawNumber: index + 1
+		}));
 
 		if (layoutMode === 'cluster') {
-			draws = buildMergedDraws(mergedDrawPool, count);
-			const availableShellWidth = Math.max(240, viewportWidth - viewportPadding);
-			const availableShellHeight = Math.max(220, viewportHeight - verticalReserve);
-			labelGutter = Math.round(Math.max(72, Math.min(maxLabelGutter, availableShellWidth * 0.18)));
-			availableFieldSize = Math.max(
-				160,
-				Math.min(availableShellWidth - labelGutter, availableShellHeight)
-			);
+			draws = drawEntries.map((draw, index) => ({
+				id: index,
+				drawNumber: draw.drawNumber,
+				groupSize: 1,
+				parts: draw.parts
+			}));
+			availableFieldSize = sharedFieldSize;
 
 			const layout = buildPhyllotaxisLayout({
 				count,
@@ -265,16 +287,18 @@
 			donutSize = layout.donutSize;
 			donutInner = Math.max(4, Math.round(donutSize * 0.29));
 			fieldSize = layout.fieldSize;
-			shellWidth = fieldSize + labelGutter;
+			shellWidth = availableFieldSize;
+			labelGutter = Math.round(Math.max(72, Math.min(maxLabelGutter, availableFieldSize * 0.18)));
 			vizHeight = fieldSize;
+			const phyllotaxisOffsetX = Math.max(0, (availableFieldSize - fieldSize) / 2);
 
 			const decoratedDraws = draws.map((draw) => ({
 				...draw,
-				isHighlighted: matchesActiveCase(draw.parts)
+				isHighlighted: matchesScenario(draw.parts, scenarioMode)
 			}));
 
 			const clusteredDraws =
-				activeCase === 'none'
+				scenarioMode === 'none'
 					? [...decoratedDraws].sort(
 							(a, b) => getMaximumPartyShare(b.parts) - getMaximumPartyShare(a.parts) || a.id - b.id
 						)
@@ -287,7 +311,7 @@
 				const pos = layout.items[index];
 				return {
 					...draw,
-					left: pos.left,
+					left: pos.left + phyllotaxisOffsetX,
 					top: pos.top
 				};
 			});
@@ -295,9 +319,7 @@
 			const highlightedDraws = laidOutDraws.filter((draw) => draw.isHighlighted);
 			highlightCount = highlightedDraws.reduce((sum, draw) => sum + draw.groupSize, 0);
 			highlightShareLabel =
-				mergedDrawPool.length > 0
-					? `${Math.round((highlightCount / mergedDrawPool.length) * 100)}%`
-					: '';
+				draws.length > 0 ? `${Math.round((highlightCount / draws.length) * 100)}%` : '';
 			if (highlightedDraws.length > 0) {
 				const minTop = Math.min(...highlightedDraws.map((draw) => draw.top));
 				const maxBottom = Math.max(...highlightedDraws.map((draw) => draw.top + donutSize));
@@ -313,22 +335,14 @@
 			leftTitle = '';
 			rightTitle = '';
 		} else {
-			draws = Array.from({ length: count }, () => buildDraw());
-			drawEntries = draws.map((parts, index) => ({
-				parts,
-				drawNumber: index + 1
-			}));
+			draws = sampledDraws;
 
-			const cfg = splitConfigs[splitMode];
+			const cfg = scenarioConfigs[scenarioMode];
 			if (cfg) {
-				activeLeftDraws = drawEntries.filter(
-					(d) => getPartyShare(d.parts, ...cfg.parties) >= cfg.threshold
-				);
-				activeRightDraws = drawEntries.filter(
-					(d) => getPartyShare(d.parts, ...cfg.parties) < cfg.threshold
-				);
-				leftTitle = `${cfg.labelGte} (${activeLeftDraws.length})`;
-				rightTitle = `${cfg.labelLt} (${activeRightDraws.length})`;
+				activeLeftDraws = drawEntries.filter((d) => matchesScenario(d.parts, scenarioMode));
+				activeRightDraws = drawEntries.filter((d) => !matchesScenario(d.parts, scenarioMode));
+				leftTitle = `${cfg.labelMatch} (${activeLeftDraws.length})`;
+				rightTitle = `${cfg.labelOther} (${activeRightDraws.length})`;
 			} else {
 				activeLeftDraws = [];
 				activeRightDraws = [];
@@ -336,10 +350,7 @@
 				rightTitle = '';
 			}
 
-			availableFieldSize = Math.max(
-				220,
-				Math.min(viewportWidth - viewportPadding, viewportHeight - verticalReserve)
-			);
+			availableFieldSize = sharedFieldSize;
 
 			const layout = buildPhyllotaxisLayout({
 				count,
@@ -353,6 +364,7 @@
 			donutSize = layout.donutSize;
 			donutInner = Math.max(4, Math.round(donutSize * 0.29));
 			fieldSize = layout.fieldSize;
+			shellWidth = availableFieldSize;
 
 			const phyllotaxisOffsetX = Math.max(0, (availableFieldSize - fieldSize) / 2);
 			const phyllotaxisPositions = new SvelteMap(
@@ -386,13 +398,13 @@
 			leftStackHeight = splitHeaderHeight + leftRows * (donutSize + waffleGap) - waffleGap;
 			rightStackHeight = splitHeaderHeight + rightRows * (donutSize + waffleGap) - waffleGap;
 			vizHeight =
-				splitMode !== 'none'
+				scenarioMode !== 'none'
 					? Math.max(splitHeaderHeight, leftStackHeight, rightStackHeight)
 					: fieldSize;
 
 			laidOutDraws = drawEntries.map((draw) => {
 				const activePos =
-					splitMode !== 'none'
+					scenarioMode !== 'none'
 						? splitPositions.get(draw.drawNumber)
 						: phyllotaxisPositions.get(draw.drawNumber);
 				return {
@@ -443,64 +455,30 @@
 			<option value="500">500</option>
 			<option value="1000">1000</option>
 		</select>
-
-		{#if layoutMode === 'waffle'}
-			<button
-				type="button"
-				class="split-btn"
-				class:active={splitMode === 'linke5'}
-				on:click={() => toggleSplitMode('linke5')}
-			>
-				Die Linke über 5%
-			</button>
-			<button
-				type="button"
-				class="split-btn"
-				class:active={splitMode === 'fdp5'}
-				on:click={() => toggleSplitMode('fdp5')}
-			>
-				FDP über 8%
-			</button>
-			<button
-				type="button"
-				class="split-btn"
-				class:active={splitMode === 'spdgruenelinke40'}
-				on:click={() => toggleSplitMode('spdgruenelinke40')}
-			>
-				SPD + Grüne + Die Linke über 40%
-			</button>
-			<button
-				type="button"
-				class="split-btn"
-				class:active={splitMode === 'cdu25'}
-				on:click={() => toggleSplitMode('cdu25')}
-			>
-				CDU/CSU über 25%
-			</button>
-		{:else}
+		<button
+			type="button"
+			class="case-button"
+			class:active={scenarioMode === 'none'}
+			on:click={() => toggleScenario('none')}
+		>
+			Alle
+		</button>
+		{#each Object.entries(scenarioConfigs) as [scenarioKey, cfg]}
 			<button
 				type="button"
 				class="case-button"
-				class:active={activeCase === 'none'}
-				on:click={() => selectCase('none')}
+				class:active={scenarioMode === scenarioKey}
+				on:click={() => toggleScenario(scenarioKey)}
 			>
-				Alle
+				{cfg.buttonLabel}
 			</button>
-			<button
-				type="button"
-				class="case-button"
-				class:active={activeCase === 'bsw-below-5'}
-				on:click={() => selectCase('bsw-below-5')}
-			>
-				BSW &lt; 5%
-			</button>
-		{/if}
+		{/each}
 	</div>
 
 	{#if layoutMode === 'cluster'}
 		<div class="phyllotaxis-wrap">
 			<div class="viz-shell" style={`width: ${shellWidth}px;`}>
-				{#if highlightLabelPosition}
+				{#if layoutMode === 'cluster' && highlightLabelPosition}
 					<div
 						class="highlight-count"
 						style={`left: ${labelGutter / 2}px; top: ${highlightLabelPosition.top}px;`}
@@ -510,23 +488,26 @@
 					</div>
 				{/if}
 				<div class="phyllotaxis" style={`width: ${fieldSize}px; height: ${fieldSize}px;`}>
-					{#each laidOutDraws as draw (draw.id)}
+					{#each laidOutDraws as draw (draw.drawNumber)}
 						<div
-							class="icon cluster-icon"
-							class:dimmed={activeCase !== 'none' && !draw.isHighlighted}
+							class="icon"
+							class:cluster-icon={layoutMode === 'cluster'}
+							class:dimmed={layoutMode === 'cluster' &&
+								scenarioMode !== 'none' &&
+								!draw.isHighlighted}
 							style={`transform: translate(${draw.left}px, ${draw.top}px);`}
 							role="button"
 							tabindex="0"
 							animate:flip={{ duration: 450, easing: (t) => t * (2 - t) }}
 							on:mouseenter={(event) =>
-								showTooltip(draw.parts, draw.drawNumber, draw.groupSize, event)}
+								showTooltip(draw.parts, draw.drawNumber, draw.groupSize ?? null, event)}
 							on:mousemove={moveTooltip}
 							on:mouseleave={hideTooltip}
 							on:focus={(event) =>
 								showTooltipFromElement(
 									draw.parts,
 									draw.drawNumber,
-									draw.groupSize,
+									draw.groupSize ?? null,
 									event.currentTarget
 								)}
 							on:blur={hideTooltip}
@@ -544,7 +525,7 @@
 		</div>
 	{:else}
 		<div class="viz-wrap" style={`width:${availableFieldSize}px; height:${vizHeight}px;`}>
-			{#if splitMode !== 'none'}
+			{#if scenarioMode !== 'none'}
 				<div class="stack-title left">{leftTitle}</div>
 				<div class="stack-title right">{rightTitle}</div>
 			{/if}
@@ -555,6 +536,7 @@
 					style={`transform: translate(${draw.left}px, ${draw.top}px);`}
 					role="button"
 					tabindex="0"
+					animate:flip={{ duration: 450, easing: (t) => t * (2 - t) }}
 					on:mouseenter={(event) => showTooltip(draw.parts, draw.drawNumber, null, event)}
 					on:mousemove={moveTooltip}
 					on:mouseleave={hideTooltip}
@@ -627,28 +609,6 @@
 		background: #c7d2fe;
 		border-color: #818cf8;
 	}
-	.split-btn {
-		padding: 6px 10px;
-		border: 1px solid #d1d5db;
-		border-radius: 6px;
-		background: #fff;
-		cursor: pointer;
-		transition:
-			background-color 180ms ease,
-			border-color 180ms ease,
-			transform 180ms ease,
-			box-shadow 180ms ease;
-	}
-	.split-btn:hover {
-		background: #f9fafb;
-		box-shadow: 0 1px 4px rgba(17, 24, 39, 0.1);
-	}
-	.split-btn.active {
-		background: #e5e7eb;
-		border-color: #9ca3af;
-		font-weight: 600;
-		transform: translateY(-1px);
-	}
 	.case-button {
 		padding: 0.5rem 0.9rem;
 		border: 1px solid rgba(17, 17, 17, 0.14);
@@ -700,7 +660,7 @@
 	}
 	.phyllotaxis {
 		position: relative;
-		margin-left: auto;
+		margin: 0 auto;
 		transition:
 			width 450ms ease,
 			height 450ms ease;
