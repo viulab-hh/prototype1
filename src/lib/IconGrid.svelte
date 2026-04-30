@@ -6,7 +6,6 @@
 	import { flip } from 'svelte/animate';
 	import { SvelteMap } from 'svelte/reactivity';
 
-	const mergedDrawPoolSize = 5000;
 	let donutCount = '200';
 	let layoutMode = 'waffle';
 	let scenarioMode = 'none';
@@ -20,7 +19,6 @@
 	const minDonutSize = 10;
 	const viewportPadding = 32;
 	const verticalReserve = 170;
-	const maxLabelGutter = 140;
 	const waffleGap = 4;
 	const splitGap = 16;
 	const splitHeaderHeight = 26;
@@ -30,7 +28,6 @@
 	let donutSize = maxDonutSize;
 	let donutInner = 18;
 
-	let draws = [];
 	let drawEntries = [];
 	let laidOutDraws = [];
 	let activeLeftDraws = [];
@@ -43,10 +40,7 @@
 	let splitCols = 1;
 	let leftStackHeight = 0;
 	let rightStackHeight = 0;
-	let labelGutter = maxLabelGutter;
-	let shellWidth = fieldSize + labelGutter;
 	let clusterLabelAnchorX = 24;
-	let highlightCount = 0;
 	let highlightShareLabel = '';
 	let highlightLabelPosition = null;
 	let tooltipParts = null;
@@ -136,10 +130,6 @@
 		}));
 	}
 
-	function buildMergedDrawPool(poolSize) {
-		return Array.from({ length: poolSize }, () => buildDraw());
-	}
-
 	function buildMinimumShares(pool) {
 		const minimums = Object.fromEntries(parties.map((party) => [party, 1]));
 		for (const draw of pool) {
@@ -148,53 +138,6 @@
 			}
 		}
 		return minimums;
-	}
-
-	function compareDraws(a, b) {
-		for (const party of ['BSW', 'CDU/CSU', 'SPD', 'Greens', 'AfD', 'FDP', 'Die Linke', 'Others']) {
-			const valueA = a.find((part) => part.party === party)?.value ?? 0;
-			const valueB = b.find((part) => part.party === party)?.value ?? 0;
-			if (valueA !== valueB) return valueA - valueB;
-		}
-		return 0;
-	}
-
-	function mergeDrawGroup(group) {
-		const totals = Object.fromEntries(parties.map((party) => [party, 0]));
-		for (const draw of group) {
-			for (const part of draw) {
-				totals[part.party] = (totals[part.party] ?? 0) + part.value;
-			}
-		}
-
-		return parties.map((party) => {
-			const meanValue = (totals[party] ?? 0) / group.length;
-			return {
-				party,
-				value: meanValue,
-				count: Math.round(meanValue * simulationSampleSize)
-			};
-		});
-	}
-
-	function buildMergedDraws(pool, targetCount) {
-		if (pool.length === 0 || targetCount <= 0) return [];
-
-		const sortedPool = [...pool].sort(compareDraws);
-		const groupCount = Math.min(targetCount, sortedPool.length);
-
-		return Array.from({ length: groupCount }, (_, index) => {
-			const start = Math.floor((index * sortedPool.length) / groupCount);
-			const end = Math.floor(((index + 1) * sortedPool.length) / groupCount);
-			const group = sortedPool.slice(start, Math.max(start + 1, end));
-
-			return {
-				id: index,
-				drawNumber: index + 1,
-				groupSize: group.length,
-				parts: mergeDrawGroup(group)
-			};
-		});
 	}
 
 	function matchesScenario(parts, mode) {
@@ -209,8 +152,7 @@
 		return Math.max(...parts.map((part) => part.value), 0);
 	}
 
-	const mergedDrawPool = buildMergedDrawPool(mergedDrawPoolSize);
-	const minimumShares = buildMinimumShares(mergedDrawPool);
+	const minimumShares = buildMinimumShares(Array.from({ length: 5000 }, () => buildDraw()));
 
 	function showTooltip(parts, drawNumber, groupSize, event) {
 		tooltipParts = parts;
@@ -268,7 +210,7 @@
 		}));
 
 		if (layoutMode === 'cluster') {
-			draws = drawEntries.map((draw, index) => ({
+			const clusterDraws = drawEntries.map((draw, index) => ({
 				id: index,
 				drawNumber: draw.drawNumber,
 				groupSize: 1,
@@ -288,13 +230,11 @@
 			donutSize = layout.donutSize;
 			donutInner = Math.max(4, Math.round(donutSize * 0.29));
 			fieldSize = layout.fieldSize;
-			shellWidth = availableFieldSize;
-			labelGutter = Math.round(Math.max(72, Math.min(maxLabelGutter, availableFieldSize * 0.18)));
 			vizHeight = fieldSize;
 			const phyllotaxisOffsetX = Math.max(0, (availableFieldSize - fieldSize) / 2);
 			clusterLabelAnchorX = Math.max(12, phyllotaxisOffsetX - 10);
 
-			const decoratedDraws = draws.map((draw) => ({
+			const decoratedDraws = clusterDraws.map((draw) => ({
 				...draw,
 				isHighlighted: matchesScenario(draw.parts, scenarioMode)
 			}));
@@ -319,9 +259,11 @@
 			});
 
 			const highlightedDraws = laidOutDraws.filter((draw) => draw.isHighlighted);
-			highlightCount = highlightedDraws.reduce((sum, draw) => sum + draw.groupSize, 0);
+			const highlightCount = highlightedDraws.reduce((sum, draw) => sum + draw.groupSize, 0);
 			highlightShareLabel =
-				draws.length > 0 ? `${Math.round((highlightCount / draws.length) * 100)}%` : '';
+				clusterDraws.length > 0
+					? `${Math.round((highlightCount / clusterDraws.length) * 100)}%`
+					: '';
 			if (highlightedDraws.length > 0) {
 				const minTop = Math.min(...highlightedDraws.map((draw) => draw.top));
 				const maxBottom = Math.max(...highlightedDraws.map((draw) => draw.top + donutSize));
@@ -337,12 +279,19 @@
 			leftTitle = '';
 			rightTitle = '';
 		} else {
-			draws = sampledDraws;
-
 			const cfg = scenarioConfigs[scenarioMode];
 			if (cfg) {
-				activeLeftDraws = drawEntries.filter((d) => matchesScenario(d.parts, scenarioMode));
-				activeRightDraws = drawEntries.filter((d) => !matchesScenario(d.parts, scenarioMode));
+				const matchingDraws = [];
+				const otherDraws = [];
+				for (const draw of drawEntries) {
+					if (matchesScenario(draw.parts, scenarioMode)) {
+						matchingDraws.push(draw);
+					} else {
+						otherDraws.push(draw);
+					}
+				}
+				activeLeftDraws = matchingDraws;
+				activeRightDraws = otherDraws;
 				leftTitle = `${cfg.labelMatch} (${activeLeftDraws.length})`;
 				rightTitle = `${cfg.labelOther} (${activeRightDraws.length})`;
 			} else {
@@ -366,7 +315,6 @@
 			donutSize = layout.donutSize;
 			donutInner = Math.max(4, Math.round(donutSize * 0.29));
 			fieldSize = layout.fieldSize;
-			shellWidth = availableFieldSize;
 
 			const phyllotaxisOffsetX = Math.max(0, (availableFieldSize - fieldSize) / 2);
 			const phyllotaxisPositions = new SvelteMap(
@@ -418,7 +366,6 @@
 				};
 			});
 
-			highlightCount = 0;
 			highlightShareLabel = '';
 			highlightLabelPosition = null;
 		}

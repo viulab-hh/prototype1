@@ -1,6 +1,5 @@
 <script>
 	import IconGrid from '$lib/IconGrid.svelte';
-	import D3Chart from '$lib/D3Chart.svelte';
 </script>
 
 <h1>Visualisierung möglicher Wahlausgänge</h1>
