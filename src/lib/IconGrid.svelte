@@ -45,6 +45,7 @@
 	let rightStackHeight = 0;
 	let labelGutter = maxLabelGutter;
 	let shellWidth = fieldSize + labelGutter;
+	let clusterLabelAnchorX = 24;
 	let highlightCount = 0;
 	let highlightShareLabel = '';
 	let highlightLabelPosition = null;
@@ -291,6 +292,7 @@
 			labelGutter = Math.round(Math.max(72, Math.min(maxLabelGutter, availableFieldSize * 0.18)));
 			vizHeight = fieldSize;
 			const phyllotaxisOffsetX = Math.max(0, (availableFieldSize - fieldSize) / 2);
+			clusterLabelAnchorX = Math.max(12, phyllotaxisOffsetX - 10);
 
 			const decoratedDraws = draws.map((draw) => ({
 				...draw,
@@ -475,73 +477,51 @@
 		{/each}
 	</div>
 
-	{#if layoutMode === 'cluster'}
-		<div class="phyllotaxis-wrap">
-			<div class="viz-shell" style={`width: ${shellWidth}px;`}>
-				{#if layoutMode === 'cluster' && highlightLabelPosition}
-					<div
-						class="highlight-count"
-						style={`left: ${labelGutter / 2}px; top: ${highlightLabelPosition.top}px;`}
-						aria-hidden="true"
-					>
-						{highlightShareLabel}
-					</div>
-				{/if}
-				<div class="phyllotaxis" style={`width: ${fieldSize}px; height: ${fieldSize}px;`}>
-					{#each laidOutDraws as draw (draw.drawNumber)}
-						<div
-							class="icon"
-							class:cluster-icon={layoutMode === 'cluster'}
-							class:dimmed={layoutMode === 'cluster' &&
-								scenarioMode !== 'none' &&
-								!draw.isHighlighted}
-							style={`transform: translate(${draw.left}px, ${draw.top}px);`}
-							role="button"
-							tabindex="0"
-							animate:flip={{ duration: 450, easing: (t) => t * (2 - t) }}
-							on:mouseenter={(event) =>
-								showTooltip(draw.parts, draw.drawNumber, draw.groupSize ?? null, event)}
-							on:mousemove={moveTooltip}
-							on:mouseleave={hideTooltip}
-							on:focus={(event) =>
-								showTooltipFromElement(
-									draw.parts,
-									draw.drawNumber,
-									draw.groupSize ?? null,
-									event.currentTarget
-								)}
-							on:blur={hideTooltip}
-						>
-							<DrawDonut
-								parts={draw.parts}
-								size={donutSize}
-								inner={donutInner}
-								referenceMinimums={minimumShares}
-							/>
-						</div>
-					{/each}
-				</div>
+	<div
+		class="stage-wrap"
+		class:cluster-stage={layoutMode === 'cluster'}
+		class:waffle-stage={layoutMode !== 'cluster'}
+		style={`width:${availableFieldSize}px; height:${layoutMode === 'cluster' ? fieldSize : vizHeight}px;`}
+	>
+		{#if layoutMode === 'cluster' && highlightLabelPosition}
+			<div
+				class="highlight-count"
+				style={`left: ${clusterLabelAnchorX}px; top: ${highlightLabelPosition.top}px;`}
+				aria-hidden="true"
+			>
+				{highlightShareLabel}
 			</div>
-		</div>
-	{:else}
-		<div class="viz-wrap" style={`width:${availableFieldSize}px; height:${vizHeight}px;`}>
-			{#if scenarioMode !== 'none'}
-				<div class="stack-title left">{leftTitle}</div>
-				<div class="stack-title right">{rightTitle}</div>
-			{/if}
+		{/if}
 
+		{#if layoutMode !== 'cluster' && scenarioMode !== 'none'}
+			<div class="stack-title left">{leftTitle}</div>
+			<div class="stack-title right">{rightTitle}</div>
+		{/if}
+
+		<div
+			class="stage-canvas"
+			style={`width:${availableFieldSize}px; height:${layoutMode === 'cluster' ? fieldSize : vizHeight}px;`}
+		>
 			{#each laidOutDraws as draw (draw.drawNumber)}
 				<div
 					class="icon"
+					class:cluster-icon={layoutMode === 'cluster'}
+					class:dimmed={layoutMode === 'cluster' && scenarioMode !== 'none' && !draw.isHighlighted}
 					style={`transform: translate(${draw.left}px, ${draw.top}px);`}
 					role="button"
 					tabindex="0"
 					animate:flip={{ duration: 450, easing: (t) => t * (2 - t) }}
-					on:mouseenter={(event) => showTooltip(draw.parts, draw.drawNumber, null, event)}
+					on:mouseenter={(event) =>
+						showTooltip(draw.parts, draw.drawNumber, draw.groupSize ?? null, event)}
 					on:mousemove={moveTooltip}
 					on:mouseleave={hideTooltip}
 					on:focus={(event) =>
-						showTooltipFromElement(draw.parts, draw.drawNumber, null, event.currentTarget)}
+						showTooltipFromElement(
+							draw.parts,
+							draw.drawNumber,
+							draw.groupSize ?? null,
+							event.currentTarget
+						)}
 					on:blur={hideTooltip}
 				>
 					<DrawDonut
@@ -553,7 +533,7 @@
 				</div>
 			{/each}
 		</div>
-	{/if}
+	</div>
 </div>
 
 <SimulationTooltip
@@ -628,11 +608,16 @@
 		border-color: rgba(17, 17, 17, 0.28);
 		color: #111111;
 	}
-	.viz-wrap {
+	.stage-wrap {
 		position: relative;
-		overflow: hidden;
 		margin: 0 auto;
 		transition: height 650ms cubic-bezier(0.2, 0.75, 0.2, 1);
+	}
+	.waffle-stage {
+		overflow: hidden;
+	}
+	.cluster-stage {
+		overflow: visible;
 	}
 	.stack-title {
 		position: absolute;
@@ -649,16 +634,7 @@
 	.stack-title.right {
 		left: calc(((100% - 16px) / 2) + 16px);
 	}
-	.phyllotaxis-wrap {
-		width: 100%;
-		overflow: hidden;
-		padding: 2px 0 6px;
-	}
-	.viz-shell {
-		position: relative;
-		margin: 0 auto;
-	}
-	.phyllotaxis {
+	.stage-canvas {
 		position: relative;
 		margin: 0 auto;
 		transition:
