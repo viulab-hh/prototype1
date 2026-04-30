@@ -30,16 +30,10 @@
 
 	let drawEntries = [];
 	let laidOutDraws = [];
-	let activeLeftDraws = [];
-	let activeRightDraws = [];
-	let leftTitle = '';
-	let rightTitle = '';
+	let scenarioHeader = { left: '', right: '' };
 	let availableFieldSize = 220;
 	let fieldSize = donutSize + 10;
 	let vizHeight = fieldSize;
-	let splitCols = 1;
-	let leftStackHeight = 0;
-	let rightStackHeight = 0;
 	let clusterLabelAnchorX = 24;
 	let highlightShareLabel = '';
 	let highlightLabelPosition = null;
@@ -49,7 +43,6 @@
 	let tooltipX = 0;
 	let tooltipY = 0;
 	let sampledDraws = [];
-	let sampledDrawCount = 0;
 
 	const scenarioConfigs = {
 		linke5: {
@@ -194,15 +187,65 @@
 		};
 	}
 
+	function buildPhyllotaxisView(count, fieldLimit) {
+		const layout = buildPhyllotaxisLayout({
+			count,
+			availableFieldSize: fieldLimit,
+			minDonutSize,
+			maxDonutSize,
+			fieldPadding: 4,
+			minGap: 1
+		});
+
+		const resolvedDonutSize = layout.donutSize;
+		const resolvedFieldSize = layout.fieldSize;
+		return {
+			layout,
+			donutSize: resolvedDonutSize,
+			donutInner: Math.max(4, Math.round(resolvedDonutSize * 0.29)),
+			fieldSize: resolvedFieldSize,
+			phyllotaxisOffsetX: Math.max(0, (fieldLimit - resolvedFieldSize) / 2)
+		};
+	}
+
+	function partitionScenarioDraws(entries, mode) {
+		const cfg = scenarioConfigs[mode];
+		if (!cfg) {
+			return {
+				matching: [],
+				other: [],
+				header: { left: '', right: '' }
+			};
+		}
+
+		const matching = [];
+		const other = [];
+		for (const draw of entries) {
+			if (matchesScenario(draw.parts, mode)) {
+				matching.push(draw);
+			} else {
+				other.push(draw);
+			}
+		}
+
+		return {
+			matching,
+			other,
+			header: {
+				left: `${cfg.labelMatch} (${matching.length})`,
+				right: `${cfg.labelOther} (${other.length})`
+			}
+		};
+	}
+
 	$: {
 		const count = Math.max(1, +donutCount);
 		const sharedFieldSize = Math.max(
 			220,
 			Math.min(viewportWidth - viewportPadding, viewportHeight - verticalReserve)
 		);
-		if (sampledDrawCount !== count) {
+		if (sampledDraws.length !== count) {
 			sampledDraws = Array.from({ length: count }, () => buildDraw());
-			sampledDrawCount = count;
 		}
 		drawEntries = sampledDraws.map((parts, index) => ({
 			parts,
@@ -217,22 +260,12 @@
 				parts: draw.parts
 			}));
 			availableFieldSize = sharedFieldSize;
-
-			const layout = buildPhyllotaxisLayout({
-				count,
-				availableFieldSize,
-				minDonutSize,
-				maxDonutSize,
-				fieldPadding: 4,
-				minGap: 1
-			});
-
-			donutSize = layout.donutSize;
-			donutInner = Math.max(4, Math.round(donutSize * 0.29));
-			fieldSize = layout.fieldSize;
+			const phyllotaxisView = buildPhyllotaxisView(count, availableFieldSize);
+			donutSize = phyllotaxisView.donutSize;
+			donutInner = phyllotaxisView.donutInner;
+			fieldSize = phyllotaxisView.fieldSize;
 			vizHeight = fieldSize;
-			const phyllotaxisOffsetX = Math.max(0, (availableFieldSize - fieldSize) / 2);
-			clusterLabelAnchorX = Math.max(12, phyllotaxisOffsetX - 10);
+			clusterLabelAnchorX = Math.max(12, phyllotaxisView.phyllotaxisOffsetX - 10);
 
 			const decoratedDraws = clusterDraws.map((draw) => ({
 				...draw,
@@ -250,10 +283,10 @@
 						});
 
 			laidOutDraws = clusteredDraws.map((draw, index) => {
-				const pos = layout.items[index];
+				const pos = phyllotaxisView.layout.items[index];
 				return {
 					...draw,
-					left: pos.left + phyllotaxisOffsetX,
+					left: pos.left + phyllotaxisView.phyllotaxisOffsetX,
 					top: pos.top
 				};
 			});
@@ -273,69 +306,34 @@
 			} else {
 				highlightLabelPosition = null;
 			}
-
-			activeLeftDraws = [];
-			activeRightDraws = [];
-			leftTitle = '';
-			rightTitle = '';
+			scenarioHeader = { left: '', right: '' };
 		} else {
-			const cfg = scenarioConfigs[scenarioMode];
-			if (cfg) {
-				const matchingDraws = [];
-				const otherDraws = [];
-				for (const draw of drawEntries) {
-					if (matchesScenario(draw.parts, scenarioMode)) {
-						matchingDraws.push(draw);
-					} else {
-						otherDraws.push(draw);
-					}
-				}
-				activeLeftDraws = matchingDraws;
-				activeRightDraws = otherDraws;
-				leftTitle = `${cfg.labelMatch} (${activeLeftDraws.length})`;
-				rightTitle = `${cfg.labelOther} (${activeRightDraws.length})`;
-			} else {
-				activeLeftDraws = [];
-				activeRightDraws = [];
-				leftTitle = '';
-				rightTitle = '';
-			}
-
 			availableFieldSize = sharedFieldSize;
-
-			const layout = buildPhyllotaxisLayout({
-				count,
-				availableFieldSize,
-				minDonutSize,
-				maxDonutSize,
-				fieldPadding: 4,
-				minGap: 1
-			});
-
-			donutSize = layout.donutSize;
-			donutInner = Math.max(4, Math.round(donutSize * 0.29));
-			fieldSize = layout.fieldSize;
-
-			const phyllotaxisOffsetX = Math.max(0, (availableFieldSize - fieldSize) / 2);
+			const scenarioPartition = partitionScenarioDraws(drawEntries, scenarioMode);
+			scenarioHeader = scenarioPartition.header;
+			const phyllotaxisView = buildPhyllotaxisView(count, availableFieldSize);
+			donutSize = phyllotaxisView.donutSize;
+			donutInner = phyllotaxisView.donutInner;
+			fieldSize = phyllotaxisView.fieldSize;
 			const phyllotaxisPositions = new SvelteMap(
-				layout.items.map((pos, index) => [
+				phyllotaxisView.layout.items.map((pos, index) => [
 					drawEntries[index].drawNumber,
 					{
-						left: pos.left + phyllotaxisOffsetX,
+						left: pos.left + phyllotaxisView.phyllotaxisOffsetX,
 						top: pos.top
 					}
 				])
 			);
 
 			const stackWidth = Math.max(80, Math.floor((availableFieldSize - splitGap) / 2));
-			splitCols = Math.max(1, Math.floor((stackWidth + waffleGap) / (donutSize + waffleGap)));
+			const splitCols = Math.max(1, Math.floor((stackWidth + waffleGap) / (donutSize + waffleGap)));
 
 			const splitPositions = new SvelteMap();
-			activeLeftDraws.forEach((draw, index) => {
+			scenarioPartition.matching.forEach((draw, index) => {
 				const pos = getWafflePosition(index, splitCols);
 				splitPositions.set(draw.drawNumber, { left: pos.x, top: pos.y });
 			});
-			activeRightDraws.forEach((draw, index) => {
+			scenarioPartition.other.forEach((draw, index) => {
 				const pos = getWafflePosition(index, splitCols);
 				splitPositions.set(draw.drawNumber, {
 					left: stackWidth + splitGap + pos.x,
@@ -343,10 +341,10 @@
 				});
 			});
 
-			const leftRows = Math.ceil(activeLeftDraws.length / splitCols);
-			const rightRows = Math.ceil(activeRightDraws.length / splitCols);
-			leftStackHeight = splitHeaderHeight + leftRows * (donutSize + waffleGap) - waffleGap;
-			rightStackHeight = splitHeaderHeight + rightRows * (donutSize + waffleGap) - waffleGap;
+			const leftRows = Math.ceil(scenarioPartition.matching.length / splitCols);
+			const rightRows = Math.ceil(scenarioPartition.other.length / splitCols);
+			const leftStackHeight = splitHeaderHeight + leftRows * (donutSize + waffleGap) - waffleGap;
+			const rightStackHeight = splitHeaderHeight + rightRows * (donutSize + waffleGap) - waffleGap;
 			vizHeight =
 				scenarioMode !== 'none'
 					? Math.max(splitHeaderHeight, leftStackHeight, rightStackHeight)
@@ -412,7 +410,7 @@
 		>
 			Alle
 		</button>
-		{#each Object.entries(scenarioConfigs) as [scenarioKey, cfg]}
+		{#each Object.entries(scenarioConfigs) as [scenarioKey, cfg] (scenarioKey)}
 			<button
 				type="button"
 				class="case-button"
@@ -441,8 +439,8 @@
 		{/if}
 
 		{#if layoutMode !== 'cluster' && scenarioMode !== 'none'}
-			<div class="stack-title left">{leftTitle}</div>
-			<div class="stack-title right">{rightTitle}</div>
+			<div class="stack-title left">{scenarioHeader.left}</div>
+			<div class="stack-title right">{scenarioHeader.right}</div>
 		{/if}
 
 		<div
