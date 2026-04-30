@@ -1,20 +1,20 @@
 <script>
 	import SimulationTooltip from '$lib/SimulationTooltip.svelte';
-	import IconStage from '$lib/iconGrid/IconStage.svelte';
-	import LayoutSwitch from '$lib/iconGrid/LayoutSwitch.svelte';
-	import ScenarioControls from '$lib/iconGrid/ScenarioControls.svelte';
+	import SimulationLayout from '$lib/simulation/SimulationLayout.svelte';
+	import LayoutSwitch from '$lib/simulation/LayoutSwitch.svelte';
+	import ScenarioControls from '$lib/simulation/ScenarioControls.svelte';
 	import {
 		scenarioConfigs,
 		matchesScenario,
 		getMaximumPartyShare,
 		partitionScenarioDraws
-	} from '$lib/iconGrid/scenarios.js';
+	} from '$lib/simulation/scenarios.js';
 	import {
 		createSimulationInputs,
 		buildDraw,
 		buildMinimumShares
-	} from '$lib/iconGrid/simulation.js';
-	import { buildPhyllotaxisView, getWafflePosition } from '$lib/iconGrid/layout.js';
+	} from '$lib/simulation/simulation.js';
+	import { buildPhyllotaxisView, getWafflePosition } from '$lib/simulation/layout.js';
 	import prediction from '$lib/data/bundestag_prediction_2026_simulation.json';
 	import { SvelteMap } from 'svelte/reactivity';
 
@@ -255,7 +255,7 @@
 		on:scenariochange={(event) => toggleScenario(event.detail.mode)}
 	/>
 
-	<IconStage
+	<SimulationLayout
 		{layoutMode}
 		{scenarioMode}
 		{availableFieldSize}
