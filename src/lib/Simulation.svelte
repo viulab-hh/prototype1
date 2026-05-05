@@ -21,7 +21,14 @@
 	let donutCount = '200';
 	let layoutMode = 'waffle';
 	let scenarioMode = 'none';
-	const { parties, probabilities, simulationSampleSize } = createSimulationInputs(prediction);
+	let voteShares = { ...(prediction.vote_shares || {}) };
+	let parties = [];
+	let probabilities = [];
+	let simulationSampleSize = 1500;
+	$: ({ parties, probabilities, simulationSampleSize } = createSimulationInputs({
+		...prediction,
+		vote_shares: voteShares
+	}));
 	const maxDonutSize = 62;
 	const minDonutSize = 10;
 	const viewportPadding = 32;
@@ -50,6 +57,14 @@
 	let tooltipX = 0;
 	let tooltipY = 0;
 	let sampledDraws = [];
+	let minimumShares = {};
+	let probabilityKey = '';
+	let lastProbabilityKey = '';
+	$: probabilityKey = probabilities.map((value) => value.toFixed(6)).join('|');
+	$: minimumShares = buildMinimumShares(
+		parties,
+		Array.from({ length: 5000 }, () => buildDraw(simulationSampleSize, probabilities, parties))
+	);
 
 	function setLayoutMode(mode) {
 		layoutMode = mode;
@@ -66,10 +81,45 @@
 		hideTooltip();
 	}
 
-	const minimumShares = buildMinimumShares(
-		parties,
-		Array.from({ length: 5000 }, () => buildDraw(simulationSampleSize, probabilities, parties))
-	);
+	function openVoteShareForm() {
+		if (typeof window === 'undefined') return;
+		const params = new URLSearchParams({
+			shares: JSON.stringify(voteShares)
+		});
+		window.open(
+			`/vote-shares?${params.toString()}`,
+			'vote-share-form',
+			'popup=yes,width=480,height=760,resizable=yes,scrollbars=yes'
+		);
+	}
+
+	function handleVoteShareMessage(event) {
+		if (typeof window === 'undefined') return;
+		if (event.origin !== window.location.origin) return;
+		if (event.data?.type !== 'vote-shares-submitted') return;
+
+		const incoming = event.data.voteShares;
+		if (!incoming || typeof incoming !== 'object') return;
+
+		const knownParties = Object.keys(prediction.vote_shares || {});
+		const nextShares = {};
+		for (const party of knownParties) {
+			const numeric = Number(incoming[party]);
+			nextShares[party] = Number.isFinite(numeric) && numeric >= 0 ? numeric : 0;
+		}
+
+		if ('Others' in nextShares) {
+			const nonOthersTotal = knownParties
+				.filter((party) => party !== 'Others')
+				.reduce((sum, party) => sum + (nextShares[party] || 0), 0);
+			nextShares.Others = Math.max(0, 100 - nonOthersTotal);
+		}
+
+		voteShares = nextShares;
+		sampledDraws = [];
+		lastProbabilityKey = '';
+		hideTooltip();
+	}
 
 	function showTooltip(parts, drawNumber, groupSize, event) {
 		tooltipParts = parts;
@@ -104,10 +154,11 @@
 			220,
 			Math.min(viewportWidth - viewportPadding, viewportHeight - verticalReserve)
 		);
-		if (sampledDraws.length !== count) {
+		if (sampledDraws.length !== count || lastProbabilityKey !== probabilityKey) {
 			sampledDraws = Array.from({ length: count }, () =>
 				buildDraw(simulationSampleSize, probabilities, parties)
 			);
+			lastProbabilityKey = probabilityKey;
 		}
 		drawEntries = sampledDraws.map((parts, index) => ({
 			parts,
@@ -242,9 +293,17 @@
 	}
 </script>
 
-<svelte:window bind:innerWidth={viewportWidth} bind:innerHeight={viewportHeight} />
+<svelte:window
+	bind:innerWidth={viewportWidth}
+	bind:innerHeight={viewportHeight}
+	on:message={handleVoteShareMessage}
+/>
 
 <div class="icon-grid">
+	<button type="button" class="customize-shares" on:click={openVoteShareForm}>
+		Eigene Stimmenanteile eingeben
+	</button>
+
 	<LayoutSwitch {layoutMode} on:change={(event) => setLayoutMode(event.detail.mode)} />
 
 	<ScenarioControls
@@ -289,5 +348,20 @@
 <style>
 	.icon-grid {
 		font-family: sans-serif;
+	}
+
+	.customize-shares {
+		margin: 0 0 0.8rem;
+		padding: 0.5rem 0.9rem;
+		border-radius: 0.5rem;
+		border: 1px solid #d0d7de;
+		background: #f5f8fb;
+		font-size: 0.95rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.customize-shares:hover {
+		background: #eaf1f8;
 	}
 </style>
