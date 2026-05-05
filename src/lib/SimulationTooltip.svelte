@@ -6,6 +6,28 @@
 	export let y = 0;
 	export let referenceMinimums = {};
 
+	const GAP = 12; // distance from cursor edge
+
+	let tooltipEl;
+	let resolvedX = 0;
+	let resolvedY = 0;
+
+	$: if (tooltipEl && parts && parts.length) {
+		const vw = window.innerWidth;
+		const vh = window.innerHeight;
+		const { offsetWidth: w, offsetHeight: h } = tooltipEl;
+
+		// Horizontal: prefer right of cursor, flip left if it would overflow
+		resolvedX = x + GAP + w > vw ? x - w - GAP : x + GAP;
+		// Clamp so tooltip never leaves the left edge
+		resolvedX = Math.max(GAP, resolvedX);
+
+		// Vertical: prefer below cursor, flip above if it would overflow
+		resolvedY = y + GAP + h > vh ? y - h - GAP : y + GAP;
+		// Clamp so tooltip never leaves the top edge
+		resolvedY = Math.max(GAP, resolvedY);
+	}
+
 	const partyColors = {
 		'CDU/CSU': '#111111',
 		SPD: '#E3000F',
@@ -40,7 +62,7 @@
 </script>
 
 {#if parts && parts.length}
-	<div class="tooltip" style={`left: ${x}px; top: ${y}px;`}>
+	<div class="tooltip" bind:this={tooltipEl} style={`left: ${resolvedX}px; top: ${resolvedY}px;`}>
 		<div class="tooltip-header">Gruppe {drawNumber}</div>
 		{#if groupSize}
 			<div class="tooltip-subheader">repräsentiert {groupSize} Simulationen</div>
