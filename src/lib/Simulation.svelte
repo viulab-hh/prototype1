@@ -17,7 +17,12 @@
 		buildMinimumShares,
 		recalculateOthers
 	} from '$lib/simulation/simulation.js';
-	import { buildPhyllotaxisView, getWafflePosition } from '$lib/simulation/layout.js';
+	import {
+		buildPhyllotaxisView,
+		getWafflePosition,
+		sortClusterDraws,
+		calculateHighlightInfo
+	} from '$lib/simulation/layout.js';
 	import prediction from '$lib/data/bundestag_prediction_2026_simulation.json';
 	import { SvelteMap } from 'svelte/reactivity';
 
@@ -212,10 +217,9 @@
 					? [...decoratedDraws].sort(
 							(a, b) => getMaximumPartyShare(b.parts) - getMaximumPartyShare(a.parts) || a.id - b.id
 						)
-					: [...decoratedDraws].sort((a, b) => {
-							if (a.isHighlighted !== b.isHighlighted) return a.isHighlighted ? -1 : 1;
-							return getMaximumPartyShare(b.parts) - getMaximumPartyShare(a.parts) || a.id - b.id;
-						});
+					: sortClusterDraws(decoratedDraws, scenarioMode, getMaximumPartyShare, (parts, mode) =>
+							matchesScenario(parts, mode, activeScenarioConfigs)
+						);
 
 			laidOutDraws = clusteredDraws.map((draw, index) => {
 				const pos = phyllotaxisView.layout.items[index];
@@ -226,21 +230,12 @@
 				};
 			});
 
-			const highlightedDraws = laidOutDraws.filter((draw) => draw.isHighlighted);
-			const highlightCount = highlightedDraws.reduce((sum, draw) => sum + draw.groupSize, 0);
-			highlightShareLabel =
-				clusterDraws.length > 0
-					? `${Math.round((highlightCount / clusterDraws.length) * 100)}%`
-					: '';
-			if (highlightedDraws.length > 0) {
-				const minTop = Math.min(...highlightedDraws.map((draw) => draw.top));
-				const maxBottom = Math.max(...highlightedDraws.map((draw) => draw.top + donutSize));
-				highlightLabelPosition = {
-					top: minTop + (maxBottom - minTop) / 2
-				};
-			} else {
-				highlightLabelPosition = null;
-			}
+			const {
+				highlightShareLabel: newHighlightShareLabel,
+				highlightLabelPosition: newHighlightLabelPosition
+			} = calculateHighlightInfo(laidOutDraws, donutSize, clusterDraws);
+			highlightShareLabel = newHighlightShareLabel;
+			highlightLabelPosition = newHighlightLabelPosition;
 			scenarioHeader = { left: '', right: '' };
 		} else {
 			availableFieldSize = sharedFieldSize;
