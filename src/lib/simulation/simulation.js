@@ -33,6 +33,13 @@ export function buildDraw(sampleSize, probabilities, parties) {
 	}));
 }
 
+export function recalculateOthers(shares) {
+	const nonOthersTotal = Object.entries(shares)
+		.filter(([party]) => party !== 'Others')
+		.reduce((sum, [, value]) => sum + (Number(value) || 0), 0);
+	return { ...shares, Others: Math.max(0, 100 - nonOthersTotal) };
+}
+
 export function buildMinimumShares(parties, drawPool) {
 	const minimums = Object.fromEntries(parties.map((party) => [party, 1]));
 	for (const draw of drawPool) {

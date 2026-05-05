@@ -14,7 +14,8 @@
 	import {
 		createSimulationInputs,
 		buildDraw,
-		buildMinimumShares
+		buildMinimumShares,
+		recalculateOthers
 	} from '$lib/simulation/simulation.js';
 	import { buildPhyllotaxisView, getWafflePosition } from '$lib/simulation/layout.js';
 	import prediction from '$lib/data/bundestag_prediction_2026_simulation.json';
@@ -117,10 +118,7 @@
 		}
 
 		if ('Others' in nextShares) {
-			const nonOthersTotal = knownParties
-				.filter((party) => party !== 'Others')
-				.reduce((sum, party) => sum + (nextShares[party] || 0), 0);
-			nextShares.Others = Math.max(0, 100 - nonOthersTotal);
+			nextShares = recalculateOthers(nextShares);
 		}
 
 		voteShares = nextShares;
