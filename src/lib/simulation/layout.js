@@ -1,4 +1,5 @@
 import { buildPhyllotaxisLayout } from '$lib/phyllotaxisLayout.js';
+import { DONUT_INNER_RATIO } from '$lib/constants/layout.js';
 
 export function getWafflePosition(index, columns, donutSize, waffleGap, splitHeaderHeight) {
 	const column = index % columns;
@@ -24,7 +25,7 @@ export function buildPhyllotaxisView({ count, fieldLimit, minDonutSize, maxDonut
 	return {
 		layout,
 		donutSize: resolvedDonutSize,
-		donutInner: Math.max(4, Math.round(resolvedDonutSize * 0.29)),
+		donutInner: Math.max(4, Math.round(resolvedDonutSize * DONUT_INNER_RATIO)),
 		fieldSize: resolvedFieldSize,
 		phyllotaxisOffsetX: Math.max(0, (fieldLimit - resolvedFieldSize) / 2)
 	};

@@ -2,6 +2,7 @@
 	import * as d3 from 'd3';
 	import { onMount } from 'svelte';
 	import { simulateOnce } from '$lib/simulation/simulation.js';
+	import { MONTE_DONUT_RADIUS, MONTE_DONUT_INNER } from '$lib/constants/layout.js';
 	export let voteShares = {};
 	export let sampleSize = 50;
 	export let sims = 1000;
@@ -51,8 +52,8 @@
 			return { party: p, mean, sd, ci: [ci_low, ci_high] };
 		});
 	}
-	const radius = 80;
-	const inner = 40;
+	const radius = MONTE_DONUT_RADIUS;
+	const inner = MONTE_DONUT_INNER;
 	const palette = [
 		'#2563EB',
 		'#10B981',

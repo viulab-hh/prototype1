@@ -1,6 +1,7 @@
 <script>
 	import * as d3 from 'd3';
 	import { getPartyColor } from '$lib/constants/parties.js';
+	import { PIE_PAD_ANGLE, MIN_PIE_LAYER_DEPTH } from '$lib/constants/layout.js';
 
 	export let parts = [];
 	export let size = 120;
@@ -9,9 +10,9 @@
 
 	$: donutLayers = (() => {
 		if (!parts || parts.length === 0) return [];
-		const arcs = d3.pie().sort(null).padAngle(0.03)(parts.map(() => 1));
+		const arcs = d3.pie().sort(null).padAngle(PIE_PAD_ANGLE)(parts.map(() => 1));
 		const baseRadius = inner;
-		const maxDepth = Math.max(4, size / 2 - inner);
+		const maxDepth = Math.max(MIN_PIE_LAYER_DEPTH, size / 2 - inner);
 		const adjustedShares = parts.map((part) =>
 			Math.max(0, part.value - (referenceMinimums?.[part.party] ?? 0))
 		);

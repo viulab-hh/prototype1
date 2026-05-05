@@ -1,5 +1,6 @@
 <script>
 	import { getPartyColor, getPartyLabel } from '$lib/constants/parties.js';
+	import { TOOLTIP_CURSOR_GAP } from '$lib/constants/layout.js';
 
 	export let parts = [];
 	export let drawNumber = null;
@@ -8,7 +9,7 @@
 	export let y = 0;
 	export let referenceMinimums = {};
 
-	const GAP = 12; // distance from cursor edge
+	const GAP = TOOLTIP_CURSOR_GAP;
 
 	let tooltipEl;
 	let resolvedX = 0;

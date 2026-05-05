@@ -23,6 +23,16 @@
 		sortClusterDraws,
 		calculateHighlightInfo
 	} from '$lib/simulation/layout.js';
+	import {
+		MAX_DONUT_SIZE,
+		MIN_DONUT_SIZE,
+		VIEWPORT_PADDING,
+		VERTICAL_RESERVE,
+		WAFFLE_GAP,
+		SPLIT_GAP,
+		SPLIT_HEADER_HEIGHT,
+		SIMULATION_SAMPLE_COUNT
+	} from '$lib/constants/layout.js';
 	import prediction from '$lib/data/bundestag_prediction_2026_simulation.json';
 	import { SvelteMap } from 'svelte/reactivity';
 
@@ -37,13 +47,13 @@
 		...prediction,
 		vote_shares: voteShares
 	}));
-	const maxDonutSize = 62;
-	const minDonutSize = 10;
-	const viewportPadding = 32;
-	const verticalReserve = 170;
-	const waffleGap = 4;
-	const splitGap = 16;
-	const splitHeaderHeight = 26;
+	const maxDonutSize = MAX_DONUT_SIZE;
+	const minDonutSize = MIN_DONUT_SIZE;
+	const viewportPadding = VIEWPORT_PADDING;
+	const verticalReserve = VERTICAL_RESERVE;
+	const waffleGap = WAFFLE_GAP;
+	const splitGap = SPLIT_GAP;
+	const splitHeaderHeight = SPLIT_HEADER_HEIGHT;
 
 	let viewportWidth = 1200;
 	let viewportHeight = 800;
@@ -77,7 +87,9 @@
 	$: probabilityKey = probabilities.map((value) => value.toFixed(6)).join('|');
 	$: minimumShares = buildMinimumShares(
 		parties,
-		Array.from({ length: 5000 }, () => buildDraw(simulationSampleSize, probabilities, parties))
+		Array.from({ length: SIMULATION_SAMPLE_COUNT }, () =>
+			buildDraw(simulationSampleSize, probabilities, parties)
+		)
 	);
 
 	function setLayoutMode(mode) {
@@ -116,7 +128,7 @@
 		if (!incoming || typeof incoming !== 'object') return;
 
 		const knownParties = Object.keys(prediction.vote_shares || {});
-		const nextShares = {};
+		let nextShares = {};
 		for (const party of knownParties) {
 			const numeric = Number(incoming[party]);
 			nextShares[party] = Number.isFinite(numeric) && numeric >= 0 ? numeric : 0;
