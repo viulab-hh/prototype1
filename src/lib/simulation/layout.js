@@ -1,5 +1,5 @@
 import { buildPhyllotaxisLayout } from '$lib/phyllotaxisLayout.js';
-import { DONUT_INNER_RATIO } from '$lib/constants/layout.js';
+import { DONUT_INNER_RATIO } from '$lib/constants/layoutConfig.js';
 
 export function getWafflePosition(index, columns, donutSize, waffleGap, splitHeaderHeight) {
 	const column = index % columns;

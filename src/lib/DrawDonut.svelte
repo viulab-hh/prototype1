@@ -1,7 +1,7 @@
 <script>
 	import * as d3 from 'd3';
 	import { getPartyColor } from '$lib/constants/parties.js';
-	import { PIE_PAD_ANGLE, MIN_PIE_LAYER_DEPTH } from '$lib/constants/layout.js';
+	import { PIE_PAD_ANGLE, MIN_PIE_LAYER_DEPTH } from '$lib/constants/layoutConfig.js';
 
 	export let parts = [];
 	export let size = 120;

@@ -2,7 +2,7 @@
 	import * as d3 from 'd3';
 	import { onMount } from 'svelte';
 	import { simulateOnce } from '$lib/simulation/simulation.js';
-	import { MONTE_DONUT_RADIUS, MONTE_DONUT_INNER } from '$lib/constants/layout.js';
+	import { MONTE_DONUT_RADIUS, MONTE_DONUT_INNER } from '$lib/constants/layoutConfig.js';
 	export let voteShares = {};
 	export let sampleSize = 50;
 	export let sims = 1000;

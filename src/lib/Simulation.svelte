@@ -32,7 +32,7 @@
 		SPLIT_GAP,
 		SPLIT_HEADER_HEIGHT,
 		SIMULATION_SAMPLE_COUNT
-	} from '$lib/constants/layout.js';
+	} from '$lib/constants/layoutConfig.js';
 	import prediction from '$lib/data/bundestag_prediction_2026_simulation.json';
 	import { SvelteMap } from 'svelte/reactivity';
 

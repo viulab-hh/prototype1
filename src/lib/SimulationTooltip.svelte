@@ -1,6 +1,6 @@
 <script>
 	import { getPartyColor, getPartyLabel } from '$lib/constants/parties.js';
-	import { TOOLTIP_CURSOR_GAP } from '$lib/constants/layout.js';
+	import { TOOLTIP_CURSOR_GAP } from '$lib/constants/layoutConfig.js';
 
 	export let parts = [];
 	export let drawNumber = null;
