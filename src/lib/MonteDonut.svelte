@@ -1,6 +1,7 @@
 <script>
 	import * as d3 from 'd3';
 	import { onMount } from 'svelte';
+	import { simulateOnce } from '$lib/simulation/simulation.js';
 	export let voteShares = {};
 	export let sampleSize = 50;
 	export let sims = 1000;
@@ -13,23 +14,6 @@
 	probs = probs.map((v) => v / total);
 
 	let stats = [];
-
-	function simulateOnce(n, probs) {
-		const k = probs.length;
-		const counts = new Array(k).fill(0);
-		for (let i = 0; i < n; i++) {
-			const r = Math.random();
-			let cum = 0;
-			for (let j = 0; j < k; j++) {
-				cum += probs[j];
-				if (r < cum) {
-					counts[j]++;
-					break;
-				}
-			}
-		}
-		return counts.map((c) => c / n);
-	}
 
 	function quantile(arr, q) {
 		const a = arr.slice().sort((x, y) => x - y);
@@ -53,8 +37,8 @@
 		const k = probs.length;
 		const accum = Array.from({ length: k }, () => []);
 		for (let t = 0; t < iters; t++) {
-			const draw = simulateOnce(n, probs);
-			for (let j = 0; j < k; j++) accum[j].push(draw[j]);
+			const counts = simulateOnce(n, probs);
+			for (let j = 0; j < k; j++) accum[j].push(counts[j] / n);
 		}
 		stats = parties.map((p, idx) => {
 			const arr = accum[idx];
