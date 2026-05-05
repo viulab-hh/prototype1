@@ -19,7 +19,7 @@
 	import { SvelteMap } from 'svelte/reactivity';
 
 	let donutCount = '200';
-	let layoutMode = 'waffle';
+	let layoutMode = 'cluster';
 	let scenarioMode = 'none';
 	let voteShares = { ...(prediction.vote_shares || {}) };
 	let parties = [];
@@ -229,6 +229,8 @@
 			availableFieldSize = sharedFieldSize;
 			const scenarioPartition = partitionScenarioDraws(drawEntries, scenarioMode, scenarioConfigs);
 			scenarioHeader = scenarioPartition.header;
+
+			// Compute a good donut size from phyllotaxis helper (scales with count)
 			const phyllotaxisView = buildPhyllotaxisView({
 				count,
 				fieldLimit: availableFieldSize,
@@ -238,54 +240,69 @@
 			donutSize = phyllotaxisView.donutSize;
 			donutInner = phyllotaxisView.donutInner;
 			fieldSize = phyllotaxisView.fieldSize;
-			const phyllotaxisPositions = new SvelteMap(
-				phyllotaxisView.layout.items.map((pos, index) => [
-					drawEntries[index].drawNumber,
-					{
-						left: pos.left + phyllotaxisView.phyllotaxisOffsetX,
-						top: pos.top
-					}
-				])
-			);
 
-			const stackWidth = Math.max(80, Math.floor((availableFieldSize - splitGap) / 2));
-			const splitCols = Math.max(1, Math.floor((stackWidth + waffleGap) / (donutSize + waffleGap)));
+			if (scenarioMode === 'none') {
+				// Simple full-width matrix grid, sorted by dominant party share (same order as cluster)
+				const gridCols = Math.max(
+					1,
+					Math.floor((availableFieldSize + waffleGap) / (donutSize + waffleGap))
+				);
+				const gridRows = Math.ceil(count / gridCols);
+				vizHeight = gridRows * (donutSize + waffleGap) - waffleGap;
 
-			const splitPositions = new SvelteMap();
-			scenarioPartition.matching.forEach((draw, index) => {
-				const pos = getWafflePosition(index, splitCols, donutSize, waffleGap, splitHeaderHeight);
-				splitPositions.set(draw.drawNumber, { left: pos.x, top: pos.y });
-			});
-			scenarioPartition.other.forEach((draw, index) => {
-				const pos = getWafflePosition(index, splitCols, donutSize, waffleGap, splitHeaderHeight);
-				splitPositions.set(draw.drawNumber, {
-					left: stackWidth + splitGap + pos.x,
-					top: pos.y
+				const sortedEntries = [...drawEntries].sort(
+					(a, b) => getMaximumPartyShare(b.parts) - getMaximumPartyShare(a.parts)
+				);
+
+				laidOutDraws = sortedEntries.map((draw, index) => {
+					const pos = getWafflePosition(index, gridCols, donutSize, waffleGap, 0);
+					return {
+						parts: draw.parts,
+						drawNumber: draw.drawNumber,
+						left: pos.x,
+						top: pos.y,
+						groupSize: null
+					};
 				});
-			});
+			} else {
+				// Scenario split: two columns
+				const stackWidth = Math.max(80, Math.floor((availableFieldSize - splitGap) / 2));
+				const splitCols = Math.max(
+					1,
+					Math.floor((stackWidth + waffleGap) / (donutSize + waffleGap))
+				);
 
-			const leftRows = Math.ceil(scenarioPartition.matching.length / splitCols);
-			const rightRows = Math.ceil(scenarioPartition.other.length / splitCols);
-			const leftStackHeight = splitHeaderHeight + leftRows * (donutSize + waffleGap) - waffleGap;
-			const rightStackHeight = splitHeaderHeight + rightRows * (donutSize + waffleGap) - waffleGap;
-			vizHeight =
-				scenarioMode !== 'none'
-					? Math.max(splitHeaderHeight, leftStackHeight, rightStackHeight)
-					: fieldSize;
+				const splitPositions = new SvelteMap();
+				scenarioPartition.matching.forEach((draw, index) => {
+					const pos = getWafflePosition(index, splitCols, donutSize, waffleGap, splitHeaderHeight);
+					splitPositions.set(draw.drawNumber, { left: pos.x, top: pos.y });
+				});
+				scenarioPartition.other.forEach((draw, index) => {
+					const pos = getWafflePosition(index, splitCols, donutSize, waffleGap, splitHeaderHeight);
+					splitPositions.set(draw.drawNumber, {
+						left: stackWidth + splitGap + pos.x,
+						top: pos.y
+					});
+				});
 
-			laidOutDraws = drawEntries.map((draw) => {
-				const activePos =
-					scenarioMode !== 'none'
-						? splitPositions.get(draw.drawNumber)
-						: phyllotaxisPositions.get(draw.drawNumber);
-				return {
-					parts: draw.parts,
-					drawNumber: draw.drawNumber,
-					left: activePos?.left ?? 0,
-					top: activePos?.top ?? 0,
-					groupSize: null
-				};
-			});
+				const leftRows = Math.ceil(scenarioPartition.matching.length / splitCols);
+				const rightRows = Math.ceil(scenarioPartition.other.length / splitCols);
+				const leftStackHeight = splitHeaderHeight + leftRows * (donutSize + waffleGap) - waffleGap;
+				const rightStackHeight =
+					splitHeaderHeight + rightRows * (donutSize + waffleGap) - waffleGap;
+				vizHeight = Math.max(splitHeaderHeight, leftStackHeight, rightStackHeight);
+
+				laidOutDraws = drawEntries.map((draw) => {
+					const pos = splitPositions.get(draw.drawNumber);
+					return {
+						parts: draw.parts,
+						drawNumber: draw.drawNumber,
+						left: pos?.left ?? 0,
+						top: pos?.top ?? 0,
+						groupSize: null
+					};
+				});
+			}
 
 			highlightShareLabel = '';
 			highlightLabelPosition = null;
