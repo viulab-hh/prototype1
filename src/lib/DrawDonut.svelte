@@ -1,25 +1,11 @@
 <script>
 	import * as d3 from 'd3';
+	import { getPartyColor } from '$lib/constants/parties.js';
 
 	export let parts = [];
 	export let size = 120;
 	export let inner = 36;
 	export let referenceMinimums = {};
-
-	const partyColors = {
-		'CDU/CSU': '#111111',
-		SPD: '#E3000F',
-		Greens: '#64A12D',
-		AfD: '#009EE0',
-		FDP: '#FFED00',
-		BSW: '#6E2C91',
-		'Die Linke': '#BE3075',
-		Others: '#9CA3AF'
-	};
-
-	function getPartyColor(party) {
-		return partyColors[party] || '#9CA3AF';
-	}
 
 	$: donutLayers = (() => {
 		if (!parts || parts.length === 0) return [];

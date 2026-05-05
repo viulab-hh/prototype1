@@ -1,4 +1,6 @@
 <script>
+	import { getPartyColor, getPartyLabel } from '$lib/constants/parties.js';
+
 	export let parts = [];
 	export let drawNumber = null;
 	export let groupSize = null;
@@ -26,30 +28,6 @@
 		resolvedY = y + GAP + h > vh ? y - h - GAP : y + GAP;
 		// Clamp so tooltip never leaves the top edge
 		resolvedY = Math.max(GAP, resolvedY);
-	}
-
-	const partyColors = {
-		'CDU/CSU': '#111111',
-		SPD: '#E3000F',
-		Greens: '#64A12D',
-		AfD: '#009EE0',
-		FDP: '#FFED00',
-		BSW: '#6E2C91',
-		'Die Linke': '#BE3075',
-		Others: '#9CA3AF'
-	};
-
-	const partyLabels = {
-		Greens: 'Grüne',
-		Others: 'Sonstige'
-	};
-
-	function getPartyColor(party) {
-		return partyColors[party] || '#9CA3AF';
-	}
-
-	function getPartyLabel(party) {
-		return partyLabels[party] || party;
 	}
 
 	function getMinimumShare(party) {

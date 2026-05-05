@@ -43,6 +43,9 @@
 			on:click={() => onScenarioClick(scenarioKey)}
 		>
 			{cfg.buttonLabel}
+			<span class={matchCounts[scenarioKey] === 0 ? 'count-badge zero' : 'count-badge'}>
+				{matchCounts[scenarioKey] ?? 0}
+			</span>
 		</button>
 	{/each}
 </div>
