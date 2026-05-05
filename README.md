@@ -1,27 +1,103 @@
-# Svelte library
+# Wahlausgänge – Bundestagswahl Simulation
 
-Everything you need to build a Svelte library, powered by [`sv`](https://npmjs.com/package/sv).
+An interactive visualization of possible German federal election outcomes using Monte Carlo simulation. The app samples thousands of possible election draws from a given set of vote-share probabilities and displays each draw as a small donut chart. Users can explore scenarios, switch between layout modes, and enter their own vote shares to immediately see how the distribution of outcomes changes.
 
-Read more about creating a library [in the docs](https://svelte.dev/docs/kit/packaging).
+---
 
-## Creating a project
+## What the app does
 
-If you're seeing this, you've probably already done this step. Congrats!
+- **Monte Carlo simulation** — Each draw samples 1 500 virtual voters according to the configured party vote shares and records how the votes are distributed. By default 200 draws are shown; you can increase this up to a large number using the controls.
+- **Two layout modes**
+  - _Cluster_ — donuts sorted and coloured by their dominant party to reveal natural groupings.
+  - _Waffle_ — donuts laid out in a phyllotaxis spiral, optionally split into two columns by a scenario filter.
 
-```sh
-# create a new project in the current directory
-npx sv create
+  | Cluster view                                   | Waffle view                                  |
+  | ---------------------------------------------- | -------------------------------------------- |
+  | ![Cluster view](static/screenshot-cluster.png) | ![Waffle view](static/screenshot-waffle.png) |
 
-# create a new project in my-app
-npx sv create my-app
+- **Scenario filters** — Quickly highlight draws that match predefined political scenarios (e.g. FDP above 5 %, SPD + Greens + Linke above 40 %).
+- **Hover tooltip** — Hovering or focusing a donut shows the exact vote shares for that draw together with the minimum share seen across all draws. The tooltip stays fully on screen regardless of cursor position.
+- **Custom vote shares** — A button opens a popup form where you can enter your own vote percentages for each party. "Others" is calculated automatically so the total always sums to 100 %. If the editable values exceed 100 % a warning appears and the form cannot be submitted. On submit the simulation immediately reruns with the new inputs.
+
+---
+
+## Tech stack
+
+| Layer                | Library / version                                            |
+| -------------------- | ------------------------------------------------------------ |
+| Framework            | [SvelteKit](https://kit.svelte.dev) `^2.50` / Svelte `^5.51` |
+| Build tool           | [Vite](https://vitejs.dev) `^7.3`                            |
+| Data visualisation   | [D3](https://d3js.org) `^7.9`                                |
+| Linting / formatting | ESLint + Prettier                                            |
+
+---
+
+## Project structure
+
+```
+src/
+  lib/
+    pages/
+      SimulationHomePage.svelte   ← main page content
+      VoteSharesPage.svelte       ← vote-share input form (popup)
+    simulation/
+      SimulationLayout.svelte     ← visual rendering stage (donuts + FLIP animations)
+      LayoutSwitch.svelte         ← waffle / cluster toggle
+      ScenarioControls.svelte     ← count selector + scenario filter buttons
+      scenarios.js                ← scenario definitions and filtering helpers
+      simulation.js               ← Monte Carlo math
+      layout.js                   ← phyllotaxis and waffle position helpers
+    Simulation.svelte             ← top-level orchestrator
+    SimulationTooltip.svelte      ← responsive hover tooltip
+    DrawDonut.svelte              ← single donut renderer
+    Donut.svelte                  ← base donut arc component
+    data/
+      bundestag_prediction_2026_simulation.json
+  routes/
+    +page.svelte                  ← route wrapper → SimulationHomePage
+    vote-shares/
+      +page.svelte                ← route wrapper → VoteSharesPage
 ```
 
-To recreate this project with the same configuration:
+---
+
+## Setup
+
+**Prerequisites:** Node.js 18 or newer, npm.
 
 ```sh
-# recreate this project
-npx sv create --template library --no-types --add prettier eslint --install npm myapp
+# 1. Clone the repository
+git clone <repo-url>
+cd <repo-folder>
+
+# 2. Install dependencies
+npm install
+
+# 3. Start the development server
+npm run dev
 ```
+
+The app will be available at `http://localhost:5173` (Vite may pick a different port if 5173 is in use — check the terminal output).
+
+---
+
+## Available scripts
+
+| Command           | Description                              |
+| ----------------- | ---------------------------------------- |
+| `npm run dev`     | Start development server with hot-reload |
+| `npm run build`   | Production build                         |
+| `npm run preview` | Preview the production build locally     |
+| `npm run lint`    | Check formatting and linting             |
+| `npm run format`  | Auto-fix formatting with Prettier        |
+
+---
+
+## Data
+
+The simulation is driven by `src/lib/data/bundestag_prediction_2026_simulation.json`. This is a **synthetic demo dataset** — it is not based on real polling data. To use different base vote shares, either edit the JSON file directly or use the in-app "Eigene Stimmenanteile eingeben" form.
+
+---
 
 ## Developing
 
