@@ -3,11 +3,13 @@
 	import SimulationLayout from '$lib/simulation/SimulationLayout.svelte';
 	import LayoutSwitch from '$lib/simulation/LayoutSwitch.svelte';
 	import ScenarioControls from '$lib/simulation/ScenarioControls.svelte';
+	import CustomFilter from '$lib/simulation/CustomFilter.svelte';
 	import {
 		scenarioConfigs,
 		matchesScenario,
 		getMaximumPartyShare,
-		partitionScenarioDraws
+		partitionScenarioDraws,
+		computeMatchCounts
 	} from '$lib/simulation/scenarios.js';
 	import {
 		createSimulationInputs,
@@ -60,6 +62,12 @@
 	let minimumShares = {};
 	let probabilityKey = '';
 	let lastProbabilityKey = '';
+	let customConfig = null;
+
+	$: activeScenarioConfigs = customConfig
+		? { ...scenarioConfigs, custom: customConfig }
+		: scenarioConfigs;
+	$: matchCounts = computeMatchCounts(drawEntries, activeScenarioConfigs);
 	$: probabilityKey = probabilities.map((value) => value.toFixed(6)).join('|');
 	$: minimumShares = buildMinimumShares(
 		parties,
@@ -148,6 +156,17 @@
 		tooltipGroupSize = null;
 	}
 
+	function handleCustomFilter(event) {
+		const cfg = event.detail.config;
+		customConfig = cfg || null;
+		if (cfg) {
+			scenarioMode = 'custom';
+		} else if (scenarioMode === 'custom') {
+			scenarioMode = 'none';
+		}
+		hideTooltip();
+	}
+
 	$: {
 		const count = Math.max(1, +donutCount);
 		const sharedFieldSize = Math.max(
@@ -187,7 +206,7 @@
 
 			const decoratedDraws = clusterDraws.map((draw) => ({
 				...draw,
-				isHighlighted: matchesScenario(draw.parts, scenarioMode)
+				isHighlighted: matchesScenario(draw.parts, scenarioMode, activeScenarioConfigs)
 			}));
 
 			const clusteredDraws =
@@ -227,7 +246,11 @@
 			scenarioHeader = { left: '', right: '' };
 		} else {
 			availableFieldSize = sharedFieldSize;
-			const scenarioPartition = partitionScenarioDraws(drawEntries, scenarioMode, scenarioConfigs);
+			const scenarioPartition = partitionScenarioDraws(
+				drawEntries,
+				scenarioMode,
+				activeScenarioConfigs
+			);
 			scenarioHeader = scenarioPartition.header;
 
 			// Compute a good donut size from phyllotaxis helper (scales with count)
@@ -326,10 +349,13 @@
 	<ScenarioControls
 		{donutCount}
 		{scenarioMode}
-		{scenarioConfigs}
+		scenarioConfigs={activeScenarioConfigs}
+		{matchCounts}
 		on:countchange={(event) => setDonutCount(event.detail.value)}
 		on:scenariochange={(event) => toggleScenario(event.detail.mode)}
 	/>
+
+	<CustomFilter {parties} {drawEntries} on:change={handleCustomFilter} />
 
 	<SimulationLayout
 		{layoutMode}

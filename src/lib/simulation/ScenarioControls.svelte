@@ -4,6 +4,7 @@
 	export let donutCount = '200';
 	export let scenarioMode = 'none';
 	export let scenarioConfigs = {};
+	export let matchCounts = {};
 
 	const dispatch = createEventDispatcher();
 
@@ -38,6 +39,7 @@
 			type="button"
 			class="case-button"
 			class:active={scenarioMode === scenarioKey}
+			class:no-match={matchCounts[scenarioKey] === 0}
 			on:click={() => onScenarioClick(scenarioKey)}
 		>
 			{cfg.buttonLabel}
@@ -74,5 +76,26 @@
 		background: rgba(17, 17, 17, 0.12);
 		border-color: rgba(17, 17, 17, 0.28);
 		color: #111111;
+	}
+
+	.case-button.no-match {
+		opacity: 0.6;
+	}
+
+	.count-badge {
+		display: inline-block;
+		margin-left: 5px;
+		padding: 0 5px;
+		border-radius: 999px;
+		background: rgba(17, 17, 17, 0.1);
+		font-size: 0.72rem;
+		font-weight: 700;
+		vertical-align: middle;
+		line-height: 1.5;
+	}
+
+	.count-badge.zero {
+		background: #fee2e2;
+		color: #b91c1c;
 	}
 </style>
