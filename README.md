@@ -8,14 +8,15 @@ An interactive visualization of possible German federal election outcomes using 
 
 - **Monte Carlo simulation** — Each draw samples 1 500 virtual voters according to the configured party vote shares and records how the votes are distributed. By default 200 draws are shown; you can increase this up to a large number using the controls.
 - **Two layout modes**
-  - _Cluster_ — donuts sorted and coloured by their dominant party to reveal natural groupings.
-  - _Waffle_ — donuts laid out in a phyllotaxis spiral, optionally split into two columns by a scenario filter.
+  - _Cluster_ — donuts sorted and coloured by their dominant party to reveal natural groupings. This is the default view.
+  - _Waffle_ — donuts arranged in a simple sorted grid. When a scenario filter is active the grid splits into two labelled columns.
 
   | Cluster view                                   | Waffle view                                  |
   | ---------------------------------------------- | -------------------------------------------- |
   | ![Cluster view](static/screenshot-cluster.png) | ![Waffle view](static/screenshot-waffle.png) |
 
-- **Scenario filters** — Quickly highlight draws that match predefined political scenarios (e.g. FDP above 5 %, SPD + Greens + Linke above 40 %).
+- **Scenario filters** — Preset coalition scenarios (e.g. Schwarz-Gelb ≥ 33%, GroKo ≥ 46%, BSW ≥ 5%) highlight matching draws. Filters that produce zero matches are visually dimmed.
+- **Custom filter** — Pick any party, choose above or below a threshold, and drag a slider to set the percentage. A live match count updates as you drag. Activate with "Filtern", clear with "× aufheben".
 - **Hover tooltip** — Hovering or focusing a donut shows the exact vote shares for that draw together with the minimum share seen across all draws. The tooltip stays fully on screen regardless of cursor position.
 - **Custom vote shares** — A button opens a popup form where you can enter your own vote percentages for each party. "Others" is calculated automatically so the total always sums to 100 %. If the editable values exceed 100 % a warning appears and the form cannot be submitted. On submit the simulation immediately reruns with the new inputs.
 
@@ -44,6 +45,7 @@ src/
       SimulationLayout.svelte     ← visual rendering stage (donuts + FLIP animations)
       LayoutSwitch.svelte         ← waffle / cluster toggle
       ScenarioControls.svelte     ← count selector + scenario filter buttons
+      CustomFilter.svelte         ← custom party/threshold filter with live preview
       scenarios.js                ← scenario definitions and filtering helpers
       simulation.js               ← Monte Carlo math
       layout.js                   ← phyllotaxis and waffle position helpers
