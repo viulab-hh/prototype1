@@ -13,7 +13,7 @@
 		const data = d3.range(count).map(() => Math.random() * 100);
 
 		// clear
-		container.innerHTML = '';
+		d3.select(container).selectAll('*').remove();
 
 		const svg = d3
 			.select(container)

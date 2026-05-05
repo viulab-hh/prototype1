@@ -67,59 +67,51 @@
 			return { party: p, mean, sd, ci: [ci_low, ci_high] };
 		});
 	}
-	// rendering helpers (use same d3 import above)
-	function escapeHtml(str) {
-		return String(str)
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;')
-			.replace(/"/g, '&quot;');
-	}
+	const radius = 80;
+	const inner = 40;
+	const palette = [
+		'#2563EB',
+		'#10B981',
+		'#F59E0B',
+		'#EF4444',
+		'#8B5CF6',
+		'#06B6D4',
+		'#F97316',
+		'#8B5CF6'
+	];
 
-	function renderSlices(stats) {
+	function buildSlices(stats) {
 		const total = stats.reduce((s, x) => s + x.mean, 0) || 1;
 		const data = stats.map((s) => s.mean / total);
 		const pie = d3.pie().sort(null);
 		const arcs = pie(data);
-		const radius = 80;
-		const inner = 40;
 		const arcGen = d3.arc().innerRadius(inner).outerRadius(radius);
-		const palette = [
-			'#2563EB',
-			'#10B981',
-			'#F59E0B',
-			'#EF4444',
-			'#8B5CF6',
-			'#06B6D4',
-			'#F97316',
-			'#8B5CF6'
-		];
-		const parts = arcs
-			.map(
-				(a, i) =>
-					`<path d="${arcGen(a)}" fill="${escapeHtml(palette[i % palette.length])}" stroke="#fff" stroke-width="1"></path>`
-			)
-			.join('');
-		const legend = stats
-			.map(
-				(s, i) =>
-					`<text x="0" y="${i * 16}" font-size="12">${escapeHtml(s.party)}: ${(s.mean * 100).toFixed(1)}% (±${(s.sd * 100).toFixed(2)}%)</text>`
-			)
-			.join('');
-		return parts + `<g transform="translate(-${radius + 10},-${radius})">${legend}</g>`;
+		return arcs.map((a, i) => ({
+			path: arcGen(a),
+			fill: palette[i % palette.length],
+			party: stats[i].party,
+			mean: stats[i].mean,
+			sd: stats[i].sd
+		}));
 	}
+
+	$: displayStats = mounted
+		? stats
+		: parties.map((p) => ({ party: p, mean: (voteShares[p] || 0) / 100, sd: 0 }));
+	$: slices = buildSlices(displayStats);
 </script>
 
 <svg {width} {height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
 	<g transform={`translate(${width / 2},${height / 2})`}>
-		{#if mounted}
-			{#if stats.length}
-				{@html renderSlices(stats)}
-			{/if}
-		{:else}
-			{@html renderSlices(
-				parties.map((p) => ({ party: p, mean: (voteShares[p] || 0) / 100, sd: 0 }))
-			)}
-		{/if}
+		{#each slices as slice (slice.party)}
+			<path d={slice.path} fill={slice.fill} stroke="#fff" stroke-width="1" />
+		{/each}
+		<g transform={`translate(-${radius + 10},-${radius})`}>
+			{#each slices as slice, i (slice.party)}
+				<text x="0" y={i * 16} font-size="12">
+					{slice.party}: {(slice.mean * 100).toFixed(1)}% (±{(slice.sd * 100).toFixed(2)}%)
+				</text>
+			{/each}
+		</g>
 	</g>
 </svg>

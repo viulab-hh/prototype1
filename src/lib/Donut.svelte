@@ -9,8 +9,8 @@
 	const radius = size / 2;
 	const inner = Math.max(0, radius - thickness);
 
-	$: arc = d3.arc().innerRadius(inner).outerRadius(radius);
-	$: fullPath = arc({ startAngle: 0, endAngle: 2 * Math.PI });
+	const arc = d3.arc().innerRadius(inner).outerRadius(radius);
+	const fullPath = arc({ startAngle: 0, endAngle: 2 * Math.PI });
 	$: valuePath = arc({ startAngle: 0, endAngle: Math.max(0, Math.min(1, value)) * 2 * Math.PI });
 </script>
 
