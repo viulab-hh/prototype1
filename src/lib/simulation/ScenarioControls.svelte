@@ -1,25 +1,23 @@
 <script>
-	import { createEventDispatcher } from 'svelte';
-
 	export let donutCount = '200';
 	export let scenarioMode = 'none';
 	export let scenarioConfigs = {};
 	export let matchCounts = {};
+	export let onCountChange = () => {};
+	export let onScenarioChange = () => {};
 
-	const dispatch = createEventDispatcher();
-
-	function onCountChange(event) {
-		dispatch('countchange', { value: event.currentTarget.value });
+	function handleCountChange(event) {
+		onCountChange(event.currentTarget.value);
 	}
 
-	function onScenarioClick(mode) {
-		dispatch('scenariochange', { mode });
+	function handleScenarioClick(mode) {
+		onScenarioChange(mode);
 	}
 </script>
 
 <div class="controls">
 	<label for="count-select">Anzahl Ziehungen:</label>
-	<select id="count-select" value={donutCount} on:change={onCountChange}>
+	<select id="count-select" value={donutCount} on:change={handleCountChange}>
 		<option value="50">50</option>
 		<option value="100">100</option>
 		<option value="200">200</option>
@@ -30,7 +28,7 @@
 		type="button"
 		class="case-button"
 		class:active={scenarioMode === 'none'}
-		on:click={() => onScenarioClick('none')}
+		on:click={() => handleScenarioClick('none')}
 	>
 		Alle
 	</button>
@@ -40,7 +38,7 @@
 			class="case-button"
 			class:active={scenarioMode === scenarioKey}
 			class:no-match={matchCounts[scenarioKey] === 0}
-			on:click={() => onScenarioClick(scenarioKey)}
+			on:click={() => handleScenarioClick(scenarioKey)}
 		>
 			{cfg.buttonLabel}
 		</button>
@@ -80,22 +78,5 @@
 
 	.case-button.no-match {
 		opacity: 0.6;
-	}
-
-	.count-badge {
-		display: inline-block;
-		margin-left: 5px;
-		padding: 0 5px;
-		border-radius: 999px;
-		background: rgba(17, 17, 17, 0.1);
-		font-size: 0.72rem;
-		font-weight: 700;
-		vertical-align: middle;
-		line-height: 1.5;
-	}
-
-	.count-badge.zero {
-		background: #fee2e2;
-		color: #b91c1c;
 	}
 </style>

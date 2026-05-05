@@ -171,10 +171,9 @@
 		tooltipGroupSize = null;
 	}
 
-	function handleCustomFilter(event) {
-		const cfg = event.detail.config;
-		customConfig = cfg || null;
-		if (cfg) {
+	function handleCustomFilter(config) {
+		customConfig = config || null;
+		if (config) {
 			scenarioMode = 'custom';
 		} else if (scenarioMode === 'custom') {
 			scenarioMode = 'none';
@@ -349,18 +348,18 @@
 		Eigene Stimmenanteile eingeben
 	</button>
 
-	<LayoutSwitch {layoutMode} on:change={(event) => setLayoutMode(event.detail.mode)} />
+	<LayoutSwitch {layoutMode} onChange={setLayoutMode} />
 
 	<ScenarioControls
 		{donutCount}
 		{scenarioMode}
 		scenarioConfigs={activeScenarioConfigs}
 		{matchCounts}
-		on:countchange={(event) => setDonutCount(event.detail.value)}
-		on:scenariochange={(event) => toggleScenario(event.detail.mode)}
+		onCountChange={setDonutCount}
+		onScenarioChange={toggleScenario}
 	/>
 
-	<CustomFilter {parties} {drawEntries} on:change={handleCustomFilter} />
+	<CustomFilter {parties} {drawEntries} onChange={handleCustomFilter} />
 
 	<SimulationLayout
 		{layoutMode}

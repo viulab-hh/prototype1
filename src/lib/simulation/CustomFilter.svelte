@@ -1,11 +1,9 @@
 <script>
-	import { createEventDispatcher } from 'svelte';
 	import { getPartyShare } from '$lib/simulation/scenarios.js';
 
 	export let parties = [];
 	export let drawEntries = [];
-
-	const dispatch = createEventDispatcher();
+	export let onChange = () => {};
 
 	let selectedParty = '';
 	let comparison = 'gte';
@@ -39,17 +37,17 @@
 
 	function activate() {
 		isActive = true;
-		dispatch('change', { config: buildConfig() });
+		onChange(buildConfig());
 	}
 
 	function clear() {
 		isActive = false;
-		dispatch('change', { config: null });
+		onChange(null);
 	}
 
 	// Re-emit live when active so the visualisation updates immediately
 	function onSettingChange() {
-		if (isActive) dispatch('change', { config: buildConfig() });
+		if (isActive) onChange(buildConfig());
 	}
 </script>
 

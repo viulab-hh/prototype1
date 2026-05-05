@@ -1,12 +1,9 @@
 <script>
-	import { createEventDispatcher } from 'svelte';
-
 	export let layoutMode = 'waffle';
-
-	const dispatch = createEventDispatcher();
+	export let onChange = () => {};
 
 	function choose(mode) {
-		dispatch('change', { mode });
+		onChange(mode);
 	}
 </script>
 
