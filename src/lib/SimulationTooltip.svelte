@@ -36,15 +36,15 @@
 	}
 
 	function formatDifferenceToMinimum(party, value) {
-		return `+${((value - getMinimumShare(party)) * 100).toFixed(2)} pp zu Minimum`;
+		return `+${((value - getMinimumShare(party)) * 100).toFixed(2)} pp vs minimum`;
 	}
 </script>
 
 {#if parts && parts.length}
 	<div class="tooltip" bind:this={tooltipEl} style={`left: ${resolvedX}px; top: ${resolvedY}px;`}>
-		<div class="tooltip-header">Gruppe {drawNumber}</div>
+		<div class="tooltip-header">Group {drawNumber}</div>
 		{#if groupSize}
-			<div class="tooltip-subheader">repräsentiert {groupSize} Simulationen</div>
+			<div class="tooltip-subheader">represents {groupSize} simulations</div>
 		{/if}
 		{#each parts as part (part.party)}
 			<div class="tooltip-row">

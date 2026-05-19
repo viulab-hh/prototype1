@@ -10,8 +10,14 @@ export const partyColors = {
 };
 
 export const partyLabels = {
-	Greens: 'Grüne',
-	Others: 'Sonstige'
+	'CDU/CSU': 'Christian Democrats',
+	SPD: 'Social Democrats',
+	Greens: 'Greens',
+	AfD: 'AfD',
+	FDP: 'Free Democrats',
+	BSW: 'BSW',
+	'Die Linke': 'The Left',
+	Others: 'Others'
 };
 
 export function getPartyColor(party) {

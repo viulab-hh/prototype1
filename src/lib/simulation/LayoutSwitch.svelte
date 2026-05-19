@@ -7,8 +7,8 @@
 	}
 </script>
 
-<div class="layout-switch" role="group" aria-label="Layout Auswahl">
-	<span class="layout-label">Ansicht:</span>
+<div class="layout-switch" role="group" aria-label="Layout selection">
+	<span class="layout-label">View:</span>
 	<button
 		type="button"
 		class="layout-btn"

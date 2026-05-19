@@ -1,5 +1,6 @@
 <script>
 	import prediction from '$lib/data/bundestag_prediction_2026_simulation.json';
+	import { getPartyLabel } from '$lib/constants/parties.js';
 
 	const baseShares = prediction.vote_shares || {};
 	const parties = Object.keys(baseShares);
@@ -62,13 +63,13 @@
 </script>
 
 <main>
-	<h1>Stimmenanteile anpassen</h1>
-	<p>"Others" wird automatisch berechnet, damit die Summe immer 100% ergibt.</p>
+	<h1>Adjust vote shares</h1>
+	<p>"Others" is calculated automatically so the total always equals 100%.</p>
 
 	<form on:submit={submitVoteShares}>
 		{#each editableParties as party (party)}
 			<label>
-				<span>{party}</span>
+				<span>{getPartyLabel(party)}</span>
 				<input
 					type="number"
 					step="0.1"
@@ -86,10 +87,10 @@
 		</div>
 
 		{#if isOver100}
-			<p class="warning">Die Summe ist größer als 100%. Bitte Werte reduzieren.</p>
+			<p class="warning">The total is greater than 100%. Please reduce some values.</p>
 		{/if}
 
-		<button type="submit" disabled={isOver100}>Anwenden</button>
+		<button type="submit" disabled={isOver100}>Apply</button>
 	</form>
 </main>
 

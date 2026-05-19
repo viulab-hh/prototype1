@@ -1,4 +1,4 @@
-# Wahlausgänge – Bundestagswahl Simulation
+# Election Outcomes - Bundestag Simulation
 
 An interactive visualization of possible German federal election outcomes using Monte Carlo simulation. The app samples thousands of possible election draws from a given set of vote-share probabilities and displays each draw as a small donut chart. Users can explore scenarios, switch between layout modes, and enter their own vote shares to immediately see how the distribution of outcomes changes.
 
@@ -15,8 +15,8 @@ An interactive visualization of possible German federal election outcomes using 
   | ---------------------------------------------- | -------------------------------------------- |
   | ![Cluster view](static/screenshot-cluster.png) | ![Waffle view](static/screenshot-waffle.png) |
 
-- **Scenario filters** — Preset coalition scenarios (e.g. Schwarz-Gelb ≥ 33%, GroKo ≥ 46%, BSW ≥ 5%) highlight matching draws. Filters that produce zero matches are visually dimmed.
-- **Custom filter** — Pick any party, choose above or below a threshold, and drag a slider to set the percentage. A live match count updates as you drag. Activate with "Filtern", clear with "× aufheben".
+- **Scenario filters** — Preset coalition scenarios (e.g. CDU/CSU + FDP ≥ 33%, CDU/CSU + SPD ≥ 46%, BSW ≥ 5%) highlight matching draws. Filters that produce zero matches are visually dimmed.
+- **Custom filter** — Pick any party, choose above or below a threshold, and drag a slider to set the percentage. A live match count updates as you drag. Activate with "Apply filter", clear with "× clear".
 - **Hover tooltip** — Hovering or focusing a donut shows the exact vote shares for that draw together with the minimum share seen across all draws. The tooltip stays fully on screen regardless of cursor position.
 - **Custom vote shares** — A button opens a popup form where you can enter your own vote percentages for each party. "Others" is calculated automatically so the total always sums to 100 %. If the editable values exceed 100 % a warning appears and the form cannot be submitted. On submit the simulation immediately reruns with the new inputs.
 
@@ -97,7 +97,7 @@ The app will be available at `http://localhost:5173` (Vite may pick a different 
 
 ## Data
 
-The simulation is driven by `src/lib/data/bundestag_prediction_2026_simulation.json`. This is a **synthetic demo dataset** — it is not based on real polling data. To use different base vote shares, either edit the JSON file directly or use the in-app "Eigene Stimmenanteile eingeben" form.
+The simulation is driven by `src/lib/data/bundestag_prediction_2026_simulation.json`. This is a **synthetic demo dataset** — it is not based on real polling data. To use different base vote shares, either edit the JSON file directly or use the in-app "Set custom vote shares" form.
 
 ---
 

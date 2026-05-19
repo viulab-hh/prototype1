@@ -345,7 +345,7 @@
 
 <div class="icon-grid">
 	<button type="button" class="customize-shares" on:click={openVoteShareForm}>
-		Eigene Stimmenanteile eingeben
+		Set custom vote shares
 	</button>
 
 	<LayoutSwitch {layoutMode} onChange={setLayoutMode} />

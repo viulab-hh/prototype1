@@ -16,7 +16,7 @@
 </script>
 
 <div class="controls">
-	<label for="count-select">Anzahl Ziehungen:</label>
+	<label for="count-select">Number of draws:</label>
 	<select id="count-select" value={donutCount} on:change={handleCountChange}>
 		<option value="50">50</option>
 		<option value="100">100</option>
@@ -30,7 +30,7 @@
 		class:active={scenarioMode === 'none'}
 		on:click={() => handleScenarioClick('none')}
 	>
-		Alle
+		All
 	</button>
 	{#each Object.entries(scenarioConfigs) as [scenarioKey, cfg] (scenarioKey)}
 		<button
