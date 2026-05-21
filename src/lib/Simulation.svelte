@@ -15,7 +15,8 @@
 		createSimulationInputs,
 		buildDraw,
 		buildMinimumShares,
-		recalculateOthers
+		recalculateOthers,
+		allocateSeats
 	} from '$lib/simulation/simulation.js';
 	import {
 		buildPhyllotaxisView,
@@ -72,6 +73,7 @@
 	let tooltipParts = null;
 	let tooltipDrawNumber = null;
 	let tooltipGroupSize = null;
+	let tooltipSeatsByParty = {};
 	let tooltipX = 0;
 	let tooltipY = 0;
 	let sampledDraws = [];
@@ -148,6 +150,11 @@
 		tooltipParts = parts;
 		tooltipDrawNumber = drawNumber;
 		tooltipGroupSize = groupSize;
+		tooltipSeatsByParty = allocateSeats(
+			parts,
+			prediction.parameters?.total_seats ?? 598,
+			prediction.parameters?.threshold_pct ?? 5
+		);
 		moveTooltip(event);
 	}
 
@@ -156,6 +163,11 @@
 		tooltipParts = parts;
 		tooltipDrawNumber = drawNumber;
 		tooltipGroupSize = groupSize;
+		tooltipSeatsByParty = allocateSeats(
+			parts,
+			prediction.parameters?.total_seats ?? 598,
+			prediction.parameters?.threshold_pct ?? 5
+		);
 		tooltipX = rect.right + 8;
 		tooltipY = rect.top + 8;
 	}
@@ -169,6 +181,7 @@
 		tooltipParts = null;
 		tooltipDrawNumber = null;
 		tooltipGroupSize = null;
+		tooltipSeatsByParty = {};
 	}
 
 	function handleCustomFilter(config) {
@@ -387,6 +400,7 @@
 	parts={tooltipParts}
 	drawNumber={tooltipDrawNumber}
 	groupSize={tooltipGroupSize}
+	seatsByParty={tooltipSeatsByParty}
 	x={tooltipX}
 	y={tooltipY}
 	referenceMinimums={minimumShares}
