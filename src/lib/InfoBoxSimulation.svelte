@@ -1,5 +1,13 @@
 <script>
+	import katex from 'katex';
+	import { onMount } from 'svelte';
 	// This component displays an info box explaining how the simulation works
+	let seMathEl;
+	onMount(() => {
+		if (seMathEl) {
+			katex.render('SE = \\sqrt{\\frac{p (1-p)}{n}}', seMathEl, {throwOnError: false});
+		}
+	});
 </script>
 
 <div class="infobox">
@@ -17,11 +25,9 @@
 		<li>
 			<b>Assign probability distributions:</b> For each party, the reported poll percentage is
 			treated as the mean of a probability distribution (typically a normal distribution). The
-			standard error is calculated from the poll’s sample size: <br />
-			<span style="font-family:monospace">SE = sqrt(p × (1-p) / n)</span>, where
-			<span style="font-family:monospace">p</span>
-			is the party’s share (as a fraction) and <span style="font-family:monospace">n</span> is the sample
-			size.
+			standard error is calculated from the poll’s sample size:
+			<div bind:this={seMathEl}></div>
+			where <span style="font-family:monospace">p</span> is the party’s share (as a fraction) and <span style="font-family:monospace">n</span> is the sample size.
 		</li>
 		<li>
 			<b>Draw random samples:</b> For each simulation run, a random value for each party’s vote share
