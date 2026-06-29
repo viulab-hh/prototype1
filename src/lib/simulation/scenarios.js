@@ -5,23 +5,23 @@ export const scenarioConfigs = {
 		comparison: 'gte',
 		labelMatch: 'CDU/CSU + FDP ≥ 33%',
 		labelOther: 'CDU/CSU + FDP < 33%',
-		buttonLabel: 'Schwarz-Gelb ≥ 33%'
+		buttonLabel: 'CDU/CSU + FDP ≥ 33%'
 	},
 	spd_greens: {
 		parties: ['SPD', 'Greens'],
 		threshold: 0.37,
 		comparison: 'gte',
-		labelMatch: 'SPD + Grüne ≥ 37%',
-		labelOther: 'SPD + Grüne < 37%',
-		buttonLabel: 'Rot-Grün ≥ 37%'
+		labelMatch: 'SPD + Greens ≥ 37%',
+		labelOther: 'SPD + Greens < 37%',
+		buttonLabel: 'SPD + Greens ≥ 37%'
 	},
-	groko: {
+	cdu_spd: {
 		parties: ['CDU/CSU', 'SPD'],
 		threshold: 0.46,
 		comparison: 'gte',
 		labelMatch: 'CDU/CSU + SPD ≥ 46%',
 		labelOther: 'CDU/CSU + SPD < 46%',
-		buttonLabel: 'GroKo ≥ 46%'
+		buttonLabel: 'CDU/CSU + SPD ≥ 46%'
 	},
 	fdp_over8: {
 		parties: ['FDP'],
@@ -43,9 +43,9 @@ export const scenarioConfigs = {
 		parties: ['Die Linke'],
 		threshold: 0.05,
 		comparison: 'gte',
-		labelMatch: 'Die Linke ≥ 5%',
-		labelOther: 'Die Linke < 5%',
-		buttonLabel: 'Die Linke ≥ 5%'
+		labelMatch: 'The Left ≥ 5%',
+		labelOther: 'The Left < 5%',
+		buttonLabel: 'The Left ≥ 5%'
 	}
 };
 

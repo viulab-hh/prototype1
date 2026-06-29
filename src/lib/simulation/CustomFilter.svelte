@@ -1,5 +1,6 @@
 <script>
 	import { getPartyShare } from '$lib/simulation/scenarios.js';
+	import { getPartyLabel } from '$lib/constants/parties.js';
 
 	export let parties = [];
 	export let drawEntries = [];
@@ -25,13 +26,14 @@
 	function buildConfig() {
 		const arrow = comparison === 'gte' ? '≥' : '<';
 		const reverseArrow = comparison === 'gte' ? '<' : '≥';
+		const partyLabel = getPartyLabel(selectedParty);
 		return {
 			parties: [selectedParty],
 			threshold: thresholdPct / 100,
 			comparison,
-			labelMatch: `${selectedParty} ${arrow} ${thresholdPct}%`,
-			labelOther: `${selectedParty} ${reverseArrow} ${thresholdPct}%`,
-			buttonLabel: `${selectedParty} ${arrow} ${thresholdPct}%`
+			labelMatch: `${partyLabel} ${arrow} ${thresholdPct}%`,
+			labelOther: `${partyLabel} ${reverseArrow} ${thresholdPct}%`,
+			buttonLabel: `${partyLabel} ${arrow} ${thresholdPct}%`
 		};
 	}
 
@@ -52,11 +54,11 @@
 </script>
 
 <div class="custom-filter">
-	<span class="label">Eigener Filter</span>
+	<span class="label">Custom filter</span>
 
 	<select bind:value={selectedParty} on:change={onSettingChange}>
 		{#each parties as party (party)}
-			<option value={party}>{party}</option>
+			<option value={party}>{getPartyLabel(party)}</option>
 		{/each}
 	</select>
 
@@ -67,7 +69,7 @@
 			on:click={() => {
 				comparison = 'gte';
 				onSettingChange();
-			}}>über</button
+			}}>above</button
 		>
 		<button
 			type="button"
@@ -75,7 +77,7 @@
 			on:click={() => {
 				comparison = 'lt';
 				onSettingChange();
-			}}>unter</button
+			}}>below</button
 		>
 	</div>
 
@@ -91,14 +93,14 @@
 
 	{#if previewCount !== null}
 		<span class="preview" class:zero={previewCount === 0}
-			>{previewCount} / {drawEntries.length} Treffer</span
+			>{previewCount} / {drawEntries.length} matches</span
 		>
 	{/if}
 
 	{#if isActive}
-		<button type="button" class="action-btn clear-btn" on:click={clear}>× aufheben</button>
+		<button type="button" class="action-btn clear-btn" on:click={clear}>× clear</button>
 	{:else}
-		<button type="button" class="action-btn apply-btn" on:click={activate}>Filtern</button>
+		<button type="button" class="action-btn apply-btn" on:click={activate}>Apply filter</button>
 	{/if}
 </div>
 

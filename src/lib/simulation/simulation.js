@@ -49,3 +49,43 @@ export function buildMinimumShares(parties, drawPool) {
 	}
 	return minimums;
 }
+
+export function allocateSeats(parts, totalSeats, thresholdPct) {
+	const seats = Object.fromEntries(parts.map((part) => [part.party, 0]));
+	const threshold = (Number(thresholdPct) || 0) / 100;
+
+	const eligible = parts.filter(
+		(part) => part.party !== 'Others' && (part.value ?? 0) >= threshold
+	);
+	if (!eligible.length) return seats;
+
+	const eligibleTotal = eligible.reduce((sum, part) => sum + (part.value ?? 0), 0);
+	if (eligibleTotal <= 0) return seats;
+
+	const allocations = eligible.map((part) => {
+		const exact = ((part.value ?? 0) / eligibleTotal) * totalSeats;
+		const floorSeats = Math.floor(exact);
+		return {
+			party: part.party,
+			floorSeats,
+			remainder: exact - floorSeats
+		};
+	});
+
+	let assigned = allocations.reduce((sum, item) => sum + item.floorSeats, 0);
+	let remaining = Math.max(0, totalSeats - assigned);
+	allocations.sort((a, b) => b.remainder - a.remainder);
+
+	for (let i = 0; i < allocations.length; i++) {
+		const bonus = remaining > 0 ? 1 : 0;
+		seats[allocations[i].party] = allocations[i].floorSeats + bonus;
+		if (remaining > 0) remaining--;
+	}
+
+	assigned = Object.values(seats).reduce((sum, value) => sum + value, 0);
+	if (assigned < totalSeats && allocations.length > 0) {
+		seats[allocations[0].party] += totalSeats - assigned;
+	}
+
+	return seats;
+}

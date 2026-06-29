@@ -5,6 +5,7 @@
 	export let parts = [];
 	export let drawNumber = null;
 	export let groupSize = null;
+	export let seatsByParty = {};
 	export let x = 0;
 	export let y = 0;
 	export let referenceMinimums = {};
@@ -36,15 +37,15 @@
 	}
 
 	function formatDifferenceToMinimum(party, value) {
-		return `+${((value - getMinimumShare(party)) * 100).toFixed(2)} pp zu Minimum`;
+		return `+${((value - getMinimumShare(party)) * 100).toFixed(2)} pp vs minimum`;
 	}
 </script>
 
 {#if parts && parts.length}
 	<div class="tooltip" bind:this={tooltipEl} style={`left: ${resolvedX}px; top: ${resolvedY}px;`}>
-		<div class="tooltip-header">Gruppe {drawNumber}</div>
+		<div class="tooltip-header">Group {drawNumber}</div>
 		{#if groupSize}
-			<div class="tooltip-subheader">repräsentiert {groupSize} Simulationen</div>
+			<div class="tooltip-subheader">represents {groupSize} simulations</div>
 		{/if}
 		{#each parts as part (part.party)}
 			<div class="tooltip-row">
@@ -54,7 +55,7 @@
 						></span>
 						<span class="party">{getPartyLabel(part.party)}</span>
 					</span>
-					<span>{(part.value * 100).toFixed(2)}%</span>
+					<span>{(part.value * 100).toFixed(2)}% • {seatsByParty?.[part.party] ?? 0} seats</span>
 				</div>
 				<div class="row-sub">
 					<span>Minimum {(getMinimumShare(part.party) * 100).toFixed(2)}%</span>

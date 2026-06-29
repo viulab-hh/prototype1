@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { simulateOnce } from '$lib/simulation/simulation.js';
 	import { MONTE_DONUT_RADIUS, MONTE_DONUT_INNER } from '$lib/constants/layoutConfig.js';
+	import { getPartyLabel } from '$lib/constants/parties.js';
 	export let voteShares = {};
 	export let sampleSize = 50;
 	export let sims = 1000;
@@ -94,7 +95,9 @@
 		<g transform={`translate(-${radius + 10},-${radius})`}>
 			{#each slices as slice, i (slice.party)}
 				<text x="0" y={i * 16} font-size="12">
-					{slice.party}: {(slice.mean * 100).toFixed(1)}% (±{(slice.sd * 100).toFixed(2)}%)
+					{getPartyLabel(slice.party)}: {(slice.mean * 100).toFixed(1)}% (±{(
+						slice.sd * 100
+					).toFixed(2)}%)
 				</text>
 			{/each}
 		</g>
